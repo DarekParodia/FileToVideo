@@ -1,6 +1,7 @@
 #include "libattopng.h"
 #include "generator.cpp"
 #include "functions.cpp"
+#include "vidgen.cpp"
 #include <opencv2/opencv.hpp>
 #include <cstdio>
 #include <thread>
@@ -10,16 +11,24 @@
 #include <string>
 #include <filesystem>
 namespace fs = std::filesystem;
+
+std::string output_filename = "output.mp4";
+std::string output_dir = "./";
 int width = 1920;
 int height = 1080;
+int scale = 0;
+int fps = 30;
 bool skip_continue = false;
+bool decrypt_mode = false;
 
-void encrypt(char *filename, int argc, char *argv[])
+void encrypt(char *filename)
 {
-    gen::generator *gena = new gen::generator(width, height, 0);
+    std::cout << "Output filename: " << output_filename << std::endl;
+    gen::generator *gena = new gen::generator(width, height, scale);
     int max_bytes = gena->getMaxBytes();
-    std::cout << "Max bytes  per frame: " << max_bytes << std::endl;
-    std::cout << "Reading file \"" << argv[1] << "\" size of: " << fn::getFileSize(filename) << " bytes " << std::endl;
+    std::cout << "Max bytes per frame: " << max_bytes << std::endl;
+    std::cout << "Reading file \"" << filename << "\" size of: " << fn::getFileSize(filename) << " bytes, " << ceil((float)fn::getFileSize(filename) / (float)max_bytes) << " frames will be generated with framerate of: " << fps << " FPS" << std::endl;
+
     if (!skip_continue)
     {
         std::cout << "Continue? (y/n) ";
@@ -28,57 +37,42 @@ void encrypt(char *filename, int argc, char *argv[])
         if (c != 'y')
             return;
     }
+    else
+        std::cout << "Skipping continue prompt" << std::endl;
+
     int number_of_frames = ceil((float)fn::getFileSize(filename) / (float)max_bytes);
     if (number_of_frames == 0)
         number_of_frames = 1;
-    std::cout << "Number of frames: " << number_of_frames << std::endl;
 
     fs::remove_all("test");
     fs::remove_all("test2");
-    fs::remove("output.mp4");
-    fs::create_directory("test");
-    fs::create_directory("test2");
+    fs::remove(output_dir + output_filename);
 
     std::cout << "Generating..." << std::endl;
 
-    cv::VideoWriter writer("output.mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 5, cv::Size(width, height), true);
-    if (!writer.isOpened())
-    {
-        std::cout << "Could not open the output video for write: " << std::endl;
-        return;
-    }
-
     fn::ProgressBar bar(number_of_frames, "frames: ");
-
+    vidgen::video *video = new vidgen::video(width, height, output_dir + output_filename, fps);
     for (int i = 0; i < number_of_frames; i++)
     {
         bar.update(i);
         char *data = fn::readFile(filename, max_bytes * i, max_bytes);
         libattopng_t *img = gena->generate(data);
-
-        // size_t len;
-        // char *data2 = libattopng_get_data(img, &len);
-        // cv::Mat frame(height, width, CV_8UC(1), data2);
-
         uint8_t *buffer = fn::getBuffer(img);
-        // fn::printHex(buffer, width * height);
-        // cv::Mat frame = fn::createFrame(width, height, buffer);
-        cv::Mat frame(height, width, CV_8UC1, buffer);
-        cv::imwrite("test2/" + std::to_string(i) + ".png", frame);
-        writer.write(frame);
-        fn::savePng(fn::generateFromBuffer(buffer, width, height), "test/" + std::to_string(i) + ".png");
+        video->writeByFrame(vidgen::frame(width, height, buffer, 1));
         libattopng_destroy(img);
     }
+    video->release();
     bar.update(number_of_frames);
-    writer.release();
+    std::cout << std::endl;
+    std::cout << "Done!" << std::endl;
     // fn::generateVideo("test", argc, argv);
 }
-void decrypt(char *filename, int argc, char *argv[])
+void decrypt(char *filename)
 {
+    std::cout << "Not Done yet.." << std::endl;
 }
 int main(int argc, char *argv[])
 {
-
     if (argc < 2)
     {
         std::cout << "Usage: " << argv[0] << " <file>" << std::endl;
@@ -90,9 +84,48 @@ int main(int argc, char *argv[])
         if (arg.find("-y") != std::string::npos)
         {
             skip_continue = true;
-            std::cout << "Skipping continue prompt" << std::endl;
+        }
+        else if (arg.find("-o") != std::string::npos)
+        {
+            output_filename = argv[i + 1];
+            if (output_filename.find(".mp4") == std::string::npos)
+                output_filename += ".mp4";
+        }
+        else if (arg.find("-d") != std::string::npos)
+        {
+            decrypt_mode = true;
+        }
+        else if (arg.find("-w") != std::string::npos)
+        {
+            width = std::stoi(argv[i + 1]);
+            if (width % 8 != 0)
+            {
+                std::cout << "Width must be divisible by 8" << std::endl;
+                return 1;
+            }
+        }
+        else if (arg.find("-h") != std::string::npos)
+        {
+            height = std::stoi(argv[i + 1]);
+            if (height % 8 != 0)
+            {
+                std::cout << "Height must be divisible by 8" << std::endl;
+                return 1;
+            }
+        }
+        else if (arg.find("-s") != std::string::npos)
+        {
+            scale = std::stoi(argv[i + 1]);
+        }
+        else if (arg.find("-f") != std::string::npos)
+        {
+            fps = std::stoi(argv[i + 1]);
         }
     }
-    encrypt(argv[1], argc, argv);
+    if (decrypt_mode)
+        decrypt(argv[1]);
+    else
+        encrypt(argv[1]);
+
     return 0;
 }
