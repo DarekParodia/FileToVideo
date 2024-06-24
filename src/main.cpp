@@ -1,7 +1,10 @@
 #include <iostream>
 
+#include "utils/timer.h"
+#include "utils/logger.h"
+
 int main()
 {
-    std::cout << "Hello, World!" << std::endl;
+    logger.log("Hello, World!");
     return 0;
 }
