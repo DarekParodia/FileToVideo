@@ -31,7 +31,7 @@ namespace arguments
             exit(1);
         }
 
-        settings::input_file_path = arg;
+        settings::input_file_path = value;
         this->executed = true;
     }
 
@@ -73,7 +73,7 @@ namespace arguments
             exit(1);
         }
 
-        settings::output_file_path = arg;
+        settings::output_file_path = value;
         this->executed = true;
     }
 
@@ -115,7 +115,7 @@ namespace arguments
             exit(1);
         }
 
-        settings::ffmpeg_path = arg;
+        settings::ffmpeg_path = value;
         this->executed = true;
     }
 

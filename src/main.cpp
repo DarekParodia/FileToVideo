@@ -6,8 +6,9 @@
 #include "utils/logger.h"
 #include "utils/general.h"
 #include "options/arguments.h"
+#include "generator/generator.h"
 
-int handle_arguments(int argc, char *argv[])
+int handle_arguments(int argc, const char *argv[])
 {
     // debug
     logger.debug("Parsing arguments");
@@ -49,10 +50,23 @@ int handle_arguments(int argc, char *argv[])
     return 0;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
     logger.info("Starting FileToVideo");
     handle_arguments(argc, argv);
+
+    // calculate requiraments and prompt user
+    gen.calculate_requiraments();
+
+    if (!logger.continue_prompt())
+    {
+        logger.warning("Exiting...");
+        logger.flush();
+        return 0;
+    };
+
+    // generate video
+    gen.generate();
 
     logger.info("Done");
     logger.flush();

@@ -6,6 +6,13 @@ Logger::Logger()
 {
 }
 
+// private
+void Logger::log_time()
+{
+    std::cout << "\033[1;30m" << program_timer.elapsed_str() << "\033[0m";
+}
+
+// out
 void Logger::log(std::string msg, LogLevel level)
 {
     if (!settings::verbose || (level == LogLevel::DEBUG && !settings::debug))
@@ -14,7 +21,7 @@ void Logger::log(std::string msg, LogLevel level)
     }
 
     // time print
-    std::cout << "\033[1;30m" << program_timer.elapsed_str() << "\033[0m";
+    log_time();
 
     switch (level)
     {
@@ -40,4 +47,26 @@ void Logger::log(std::string msg, LogLevel level)
 
     // message print
     std::cout << " " << msg << std::endl;
+}
+
+// in
+std::string Logger::prompt(std::string msg)
+{
+    // time print
+    log_time();
+
+    std::cout << " [\033[1;34mIN\033[0m]";
+    std::cout << " " << msg;
+
+    std::string input;
+    std::getline(std::cin, input);
+    return input;
+}
+
+bool Logger::confirm_prompt(std::string msg)
+{
+    std::string input = prompt(msg + " [Y/n] ");
+
+    std::transform(input.begin(), input.end(), input.begin(), ::tolower);
+    return input == "y" || input == "yes";
 }
