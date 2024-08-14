@@ -61,6 +61,7 @@ namespace generator
                 uint8_t *frame_buffer = this->generate_frame(i);
                 write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
                 logger.debug("Frame " + std::to_string(i + 1) + " / " + std::to_string(this->total_frames) + " generated");
+                free(frame_buffer);
             }
 
             // write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
@@ -290,13 +291,25 @@ namespace generator
                         size_t height_off = settings::video::width * 3 * k;
                         if (settings::video::use_color)
                         {
-                            bool r = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
-                            bool g = (temp_data_buffor[(current_bit + 1) / 8] >> (7 - ((current_bit + 1) % 8))) & 1;
-                            bool b = (temp_data_buffor[(current_bit + 2) / 8] >> (7 - ((current_bit + 2) % 8))) & 1;
-
-                            current_pixel[0 + height_off] = r ? 255 : 0;
-                            current_pixel[1 + height_off] = g ? 255 : 0;
-                            current_pixel[2 + height_off] = b ? 255 : 0;
+                            if (!(current_bit >= this->bits_per_frame))
+                            {
+                                bool r = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+                                current_pixel[0 + height_off] = r ? 255 : 0;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                            if (!(current_bit + 1 >= this->bits_per_frame))
+                            {
+                                bool g = (temp_data_buffor[(current_bit + 1) / 8] >> (7 - ((current_bit + 1) % 8))) & 1;
+                                current_pixel[1 + height_off] = g ? 255 : 0;
+                            }
+                            if (!(current_bit + 2 >= this->bits_per_frame))
+                            {
+                                bool b = (temp_data_buffor[(current_bit + 2) / 8] >> (7 - ((current_bit + 2) % 8))) & 1;
+                                current_pixel[2 + height_off] = b ? 255 : 0;
+                            }
                         }
                         else
                         {
