@@ -11,6 +11,17 @@ namespace generator
         this->file.close();
     }
 
+    uint8_t *File::read(size_t start, size_t size)
+    {
+        this->check_open();
+
+        uint8_t *data = new uint8_t[size];
+        this->file.seekg(start);
+        this->file.read((char *)data, size);
+
+        return data;
+    }
+
     void File::check_open()
     {
         if (!this->file.is_open())

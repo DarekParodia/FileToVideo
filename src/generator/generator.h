@@ -33,7 +33,7 @@ namespace generator
         uint8_t *header;
         size_t header_size;
         size_t frame_header_size;
-        size_t bytes_per_frame;
+        size_t bits_per_frame;
         size_t total_frames;
         size_t video_duration;
     };

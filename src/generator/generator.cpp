@@ -55,11 +55,14 @@ namespace generator
 
             // wait for ffmpeg to start (this has to change in the future)
             usleep(1000000);
-            uint8_t *frame_buffer = this->generate_frame(0);
 
-            logger.debug("Writing frame 0 to pipe");
-            write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
-            logger.debug("Frame 0 written to pipe");
+            for (size_t i = 0; i < this->total_frames; i++)
+            {
+                uint8_t *frame_buffer = this->generate_frame(i);
+                logger.debug("Writing frame " + std::to_string(i) + " to pipe");
+                write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
+                logger.debug("Frame " + std::to_string(i) + " written to pipe");
+            }
 
             // write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
 
@@ -80,14 +83,14 @@ namespace generator
         // frame capacity
         free(this->generate_frame_header(0, 0)); // to generate frame header size
 
-        this->bytes_per_frame = (settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size);
-        this->bytes_per_frame *= settings::video::color_space;
+        this->bits_per_frame = (settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size);
+        this->bits_per_frame *= settings::video::color_space;
 
         if (settings::video::use_color)
-            this->bytes_per_frame *= 3; // rgb
+            this->bits_per_frame *= 3; // rgb
 
         // total frames
-        this->total_frames = (size_t)ceil((double)this->input_file->size() / (double)this->bytes_per_frame);
+        this->total_frames = (size_t)ceil((double)this->input_file->size() / (double)this->bits_per_frame);
         this->total_frames += HEADER_FRAMES; // first 2 frames are reserved for header; more info in settings.h
 
         // video duration
@@ -110,7 +113,7 @@ namespace generator
         logger.info("Use color: " + std::string(settings::video::use_color ? "true" : "false"));
 
         logger.info("========================");
-        logger.info("Bytes per video frame: " + std::to_string(this->bytes_per_frame));
+        logger.info("Bytes per video frame: " + std::to_string(this->bits_per_frame));
         logger.info("Total frames: " + std::to_string(this->total_frames));
 
         std::ostringstream oss;
@@ -255,7 +258,7 @@ namespace generator
         else
         {
             // actual data encoding
-            size_t data_size = this->bytes_per_frame - this->frame_header_size;
+            size_t data_size = frame_size / 8;
             size_t data_offset = (frame_index - HEADER_FRAMES) * (data_size);
 
             uint8_t *data = this->input_file->read(data_offset, data_size);
@@ -274,7 +277,7 @@ namespace generator
             size_t current_bit = 0;
 
             // encode data to frame
-            for (size_t i = 0; i < this->bytes_per_frame * 8; i++)
+            for (size_t i = 0; i < this->bits_per_frame; i++)
             {
                 for (size_t j = 0; j < settings::video::pixel_size; j++)
                 {
@@ -299,8 +302,17 @@ namespace generator
                             current_pixel[2 + height_off] = bit ? 255 : 0;
                         }
                     }
-                }
 
+                    current_pixel += 3; // 3 bytes per pixel
+                    pixel_counter += 3;
+
+                    // if (pixel_counter % (settings::video::width * 3) == 0) // skip height of pixel from pixelsize
+                    // {
+                    //     size_t height_off = settings::video::width * 3 * (settings::video::pixel_size - 1);
+                    //     current_pixel += height_off;
+                    //     pixel_counter += height_off;
+                    // }
+                }
                 if (settings::video::use_color)
                     current_bit += 3;
                 else
