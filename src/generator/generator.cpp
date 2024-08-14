@@ -271,16 +271,40 @@ namespace generator
             memcpy(temp_data_buffor + this->frame_header_size, data, data_size);
             free(data);
 
+            size_t current_bit = 0;
+
             // encode data to frame
-            for (size_t i = 0; i < this->bytes_per_frame; i++)
+            for (size_t i = 0; i < this->bytes_per_frame * 8; i++)
             {
-                for (size_t j = 0; j < settings::pixel_size; j++)
+                for (size_t j = 0; j < settings::video::pixel_size; j++)
                 {
-                    for (size_t k = 0; k < settings::pixel_size; k++)
+                    for (size_t k = 0; k < settings::video::pixel_size; k++)
                     {
                         size_t height_off = settings::video::width * 3 * k;
+                        if (settings::video::use_color)
+                        {
+                            bool r = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+                            bool g = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+                            bool b = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+
+                            current_pixel[0 + height_off] = r ? 255 : 0;
+                            current_pixel[1 + height_off] = g ? 255 : 0;
+                            current_pixel[2 + height_off] = b ? 255 : 0;
+                        }
+                        else
+                        {
+                            bool bit = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+                            current_pixel[0 + height_off] = bit ? 255 : 0;
+                            current_pixel[1 + height_off] = bit ? 255 : 0;
+                            current_pixel[2 + height_off] = bit ? 255 : 0;
+                        }
                     }
-                                }
+                }
+
+                if (settings::video::use_color)
+                    current_bit += 3;
+                else
+                    current_bit++;
             }
         }
         return frame;
