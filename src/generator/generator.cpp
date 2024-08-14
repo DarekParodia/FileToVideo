@@ -213,12 +213,13 @@ namespace generator
     uint8_t *Generator::generate_frame(size_t frame_index)
     {
         // create data buffer
-        uint8_t *frame = static_cast<uint8_t *>(malloc(settings::video::width * settings::video::height * 3));
+        size_t frame_size = settings::video::width * settings::video::height * 3;
+        uint8_t *frame = static_cast<uint8_t *>(malloc(frame_size));
         uint8_t *current_pixel = frame;
 
         size_t pixel_counter = 0;
 
-        memset(frame, 0, settings::video::width * settings::video::height * 3);
+        memset(frame, 0xff / 2, frame_size); // after end of header fill the rest of the frame with gray color
 
         // generate frame header (hardcoded for now)
         if (frame_index < HEADER_FRAMES)
@@ -249,6 +250,37 @@ namespace generator
                         }
                     }
                 }
+            }
+        }
+        else
+        {
+            // actual data encoding
+            size_t data_size = this->bytes_per_frame - this->frame_header_size;
+            size_t data_offset = (frame_index - HEADER_FRAMES) * (data_size);
+
+            uint8_t *data = this->input_file->read(data_offset, data_size);
+            uint8_t *header = this->generate_frame_header(frame_index, generator::hash(data, data_size));
+
+            uint8_t *temp_data_buffor = static_cast<uint8_t *>(malloc(data_size + this->frame_header_size));
+
+            // firstly write header
+            memcpy(temp_data_buffor, header, this->frame_header_size);
+            free(header);
+
+            // then write data
+            memcpy(temp_data_buffor + this->frame_header_size, data, data_size);
+            free(data);
+
+            // encode data to frame
+            for (size_t i = 0; i < this->bytes_per_frame; i++)
+            {
+                for (size_t j = 0; j < settings::pixel_size; j++)
+                {
+                    for (size_t k = 0; k < settings::pixel_size; k++)
+                    {
+                        size_t height_off = settings::video::width * 3 * k;
+                    }
+                                }
             }
         }
         return frame;

@@ -14,6 +14,7 @@ namespace generator
         File(std::filesystem::path path);
         ~File();
         unsigned long size();
+        uint8_t *read(size_t start, size_t size);
 
     private:
         std::filesystem::path path;
