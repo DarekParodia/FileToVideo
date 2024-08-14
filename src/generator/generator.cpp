@@ -221,7 +221,7 @@ namespace generator
         // generate frame header (hardcoded for now)
         if (frame_index < HEADER_FRAMES)
         {
-            for (size_t i = 0; i < this->header_size * 8; i++)
+            for (size_t i = 0; i < this->header_size; i++)
             {
                 for (int bit_i = 0; bit_i < 8; bit_i++)
                 {
