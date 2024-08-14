@@ -221,18 +221,23 @@ namespace generator
         // generate frame header (hardcoded for now)
         if (frame_index < HEADER_FRAMES)
         {
-            for (size_t i = 0; i < this->header_size; i++)
+            for (size_t i = 0; i < this->header_size * 8; i++)
             {
-                for (size_t j = 0; j < HEADER_PIXEL_SIZE; j++)
+                for (int bit_i = 0; bit_i < 8; bit_i++)
                 {
-                    for (size_t k = 0; k < HEADER_PIXEL_SIZE; k++)
+                    bool bit = (this->header[i] >> bit_i) & 1;
+                    for (size_t j = 0; j < HEADER_PIXEL_SIZE; j++)
                     {
-                        size_t height_off = settings::video::width * 3 * k;
-                        current_pixel[0 + height_off] = this->header[i];
-                        current_pixel[1 + height_off] = this->header[i];
-                        current_pixel[2 + height_off] = this->header[i];
+                        for (size_t k = 0; k < HEADER_PIXEL_SIZE; k++)
+                        {
+                            size_t height_off = settings::video::width * 3 * k;
+
+                            current_pixel[0 + height_off] = bit ? 255 : 0;
+                            current_pixel[1 + height_off] = bit ? 255 : 0;
+                            current_pixel[2 + height_off] = bit ? 255 : 0;
+                        }
+                        current_pixel += 3; // 3 bytes per pixel
                     }
-                    current_pixel += 3;
                 }
             }
         }

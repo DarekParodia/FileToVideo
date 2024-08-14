@@ -5,3 +5,5 @@ build/*
 .vscode
 .vscode/
 .vscode/*
+
+output.mp4
