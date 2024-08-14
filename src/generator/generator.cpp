@@ -60,6 +60,7 @@ namespace generator
             {
                 uint8_t *frame_buffer = this->generate_frame(i);
                 write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
+                logger.debug("Frame " + std::to_string(i + 1) + " / " + std::to_string(this->total_frames) + " generated");
             }
 
             // write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
@@ -82,13 +83,14 @@ namespace generator
         free(this->generate_frame_header(0, 0)); // to generate frame header size
 
         this->bits_per_frame = (settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size);
-        this->bits_per_frame *= settings::video::color_space;
+        this->bits_per_frame -= this->frame_header_size * 8; // remove space for frame header
+        // this->bits_per_frame *= settings::video::color_space;
 
         if (settings::video::use_color)
             this->bits_per_frame *= 3; // rgb
 
         // total frames
-        this->total_frames = (size_t)ceil((double)(this->input_file->size()) / (double)this->bits_per_frame);
+        this->total_frames = (size_t)ceil((double)(this->input_file->size()) / (double)(this->bits_per_frame / 8));
         this->total_frames += HEADER_FRAMES; // first 2 frames are reserved for header; more info in settings.h
 
         // video duration
@@ -111,7 +113,7 @@ namespace generator
         logger.info("Use color: " + std::string(settings::video::use_color ? "true" : "false"));
 
         logger.info("========================");
-        logger.info("Bytes per video frame: " + std::to_string(this->bits_per_frame));
+        logger.info("Bits per video frame: " + std::to_string(this->bits_per_frame));
         logger.info("Total frames: " + std::to_string(this->total_frames));
 
         std::ostringstream oss;
@@ -256,25 +258,24 @@ namespace generator
         else
         {
             // actual data encoding
-            size_t data_size = frame_size / 8;
-            size_t data_offset = (frame_index - HEADER_FRAMES) * (data_size);
+            size_t data_offset = (frame_index - HEADER_FRAMES) * (this->bits_per_frame / 8);
 
-            uint8_t *data = this->input_file->read(data_offset, data_size * 8);
-            uint8_t *header = this->generate_frame_header(frame_index, generator::hash(data, data_size));
+            uint8_t *data = this->input_file->read(data_offset, this->bits_per_frame / 8);
+            uint8_t *header = this->generate_frame_header(frame_index, generator::hash(data, this->bits_per_frame / 8));
 
-            uint8_t *temp_data_buffor = static_cast<uint8_t *>(malloc(data_size + this->frame_header_size));
+            uint8_t *temp_data_buffor = static_cast<uint8_t *>(malloc(this->bits_per_frame / 8 + this->frame_header_size + 1));
 
             // firstly write header
             memcpy(temp_data_buffor, header, this->frame_header_size);
             free(header);
 
             // then write data
-            memcpy(temp_data_buffor + this->frame_header_size, data, data_size);
+            memcpy(temp_data_buffor + this->frame_header_size, data, this->bits_per_frame / 8);
             free(data);
 
             size_t current_bit = 0;
 
-            logger.debug("bytes left:" + std::to_string(this->input_file->bytes_left(current_bit / 8)));
+            logger.debug("bits left:" + std::to_string(this->input_file->bytes_left(data_offset) * 8));
             // encode data to frame
             for (size_t i = 0; i < this->bits_per_frame; i++)
             {

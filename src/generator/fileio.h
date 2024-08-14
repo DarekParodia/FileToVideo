@@ -14,7 +14,7 @@ namespace generator
         File(std::filesystem::path path);
         ~File();
         unsigned long size();
-        unsigned long bytes_left(size_t start);
+        long bytes_left(size_t start);
         uint8_t *read(size_t start, size_t size);
 
     private:
