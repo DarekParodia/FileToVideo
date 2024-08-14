@@ -59,9 +59,7 @@ namespace generator
             for (size_t i = 0; i < this->total_frames; i++)
             {
                 uint8_t *frame_buffer = this->generate_frame(i);
-                logger.debug("Writing frame " + std::to_string(i) + " to pipe");
                 write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
-                logger.debug("Frame " + std::to_string(i) + " written to pipe");
             }
 
             // write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
@@ -90,7 +88,7 @@ namespace generator
             this->bits_per_frame *= 3; // rgb
 
         // total frames
-        this->total_frames = (size_t)ceil((double)this->input_file->size() / (double)this->bits_per_frame);
+        this->total_frames = (size_t)ceil((double)(this->input_file->size()) / (double)this->bits_per_frame);
         this->total_frames += HEADER_FRAMES; // first 2 frames are reserved for header; more info in settings.h
 
         // video duration
@@ -261,7 +259,7 @@ namespace generator
             size_t data_size = frame_size / 8;
             size_t data_offset = (frame_index - HEADER_FRAMES) * (data_size);
 
-            uint8_t *data = this->input_file->read(data_offset, data_size);
+            uint8_t *data = this->input_file->read(data_offset, data_size * 8);
             uint8_t *header = this->generate_frame_header(frame_index, generator::hash(data, data_size));
 
             uint8_t *temp_data_buffor = static_cast<uint8_t *>(malloc(data_size + this->frame_header_size));
@@ -276,9 +274,14 @@ namespace generator
 
             size_t current_bit = 0;
 
+            logger.debug("bytes left:" + std::to_string(this->input_file->bytes_left(current_bit / 8)));
             // encode data to frame
             for (size_t i = 0; i < this->bits_per_frame; i++)
             {
+                if (this->input_file->bytes_left(current_bit / 8) <= 0) // no data failsafe
+                {
+                    break;
+                }
                 for (size_t j = 0; j < settings::video::pixel_size; j++)
                 {
                     for (size_t k = 0; k < settings::video::pixel_size; k++)
@@ -287,8 +290,8 @@ namespace generator
                         if (settings::video::use_color)
                         {
                             bool r = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
-                            bool g = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
-                            bool b = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+                            bool g = (temp_data_buffor[(current_bit + 1) / 8] >> (7 - ((current_bit + 1) % 8))) & 1;
+                            bool b = (temp_data_buffor[(current_bit + 2) / 8] >> (7 - ((current_bit + 2) % 8))) & 1;
 
                             current_pixel[0 + height_off] = r ? 255 : 0;
                             current_pixel[1 + height_off] = g ? 255 : 0;
@@ -306,12 +309,12 @@ namespace generator
                     current_pixel += 3; // 3 bytes per pixel
                     pixel_counter += 3;
 
-                    // if (pixel_counter % (settings::video::width * 3) == 0) // skip height of pixel from pixelsize
-                    // {
-                    //     size_t height_off = settings::video::width * 3 * (settings::video::pixel_size - 1);
-                    //     current_pixel += height_off;
-                    //     pixel_counter += height_off;
-                    // }
+                    if (pixel_counter % (settings::video::width * 3) == 0) // skip height of pixel from pixelsize
+                    {
+                        size_t height_off = settings::video::width * 3 * (settings::video::pixel_size - 1);
+                        current_pixel += height_off;
+                        pixel_counter += height_off;
+                    }
                 }
                 if (settings::video::use_color)
                     current_bit += 3;

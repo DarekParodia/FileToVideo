@@ -61,4 +61,9 @@ namespace generator
         return size;
     }
 
+    unsigned long File::bytes_left(size_t start)
+    {
+        return this->size() - start;
+    }
+
 }
