@@ -216,6 +216,8 @@ namespace generator
         uint8_t *frame = static_cast<uint8_t *>(malloc(settings::video::width * settings::video::height * 3));
         uint8_t *current_pixel = frame;
 
+        size_t pixel_counter = 0;
+
         memset(frame, 0, settings::video::width * settings::video::height * 3);
 
         // generate frame header (hardcoded for now)
@@ -237,6 +239,14 @@ namespace generator
                             current_pixel[2 + height_off] = bit ? 255 : 0;
                         }
                         current_pixel += 3; // 3 bytes per pixel
+                        pixel_counter += 3;
+
+                        if (pixel_counter % (settings::video::width * 3) == 0) // skip height of pixel from pixelsize
+                        {
+                            size_t height_off = settings::video::width * 3 * (HEADER_PIXEL_SIZE - 1);
+                            current_pixel += height_off;
+                            pixel_counter += height_off;
+                        }
                     }
                 }
             }
