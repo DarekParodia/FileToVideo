@@ -14,9 +14,30 @@ include_directories(
         ${IncludeDIR}
 )
 
+# get libraries
+
+# avcodec
+find_library(AVCODEC_LIBRARY avcodec)
+if(NOT AVCODEC_LIBRARY)
+    message(FATAL_ERROR "avcodec library not found")
+endif()
+
+# avformat
+find_library(AVFORMAT_LIBRARY avformat)
+if(NOT AVFORMAT_LIBRARY)
+    message(FATAL_ERROR "avformat library not found")
+endif()
+
+# avutil
+find_library(AVUTIL_LIBRARY avutil)
+if(NOT AVUTIL_LIBRARY)
+    message(FATAL_ERROR "avutil library not found")
+endif()
+
 file(GLOB_RECURSE SOURCE_FILES ${SrcDIR}/*.cpp ${SrcDIR}/*.c ${SrcDIR}/**/*.cpp ${SrcDIR}/**/*.c) 
 file(GLOB_RECURSE HEADER_FILES ${SrcDIR}/*.h ${SrcDIR}/*.hpp ${SrcDIR}/**/*.h ${SrcDIR}/**/*.hpp)
 
 add_executable(filetovideo ${CMAKE_SOURCE_DIR}/src/main.cpp ${SOURCE_FILES})
 
 target_link_directories(filetovideo PUBLIC ${CMAKE_SOURCE_DIR}/src/)
+target_link_libraries(filetovideo ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${FFMPEG_LIBRARY})

@@ -7,6 +7,7 @@
 #include "utils/general.h"
 #include "options/arguments.h"
 #include "generator/generator.h"
+#include "decoder/decoder.h"
 
 int handle_arguments(int argc, const char *argv[])
 {
@@ -55,19 +56,35 @@ int main(int argc, const char *argv[])
     logger.info("Starting FileToVideo");
     handle_arguments(argc, argv);
 
-    // calculate requiraments and prompt user
-    gen.calculate_requiraments();
-
-    if (!logger.continue_prompt())
+    if (!settings::decode)
     {
-        logger.warning("Exiting...");
-        logger.flush();
-        return 0;
-    };
+        // calculate requiraments and prompt user
+        gen.calculate_requiraments();
 
-    // generate video
-    gen.generate();
+        if (!logger.continue_prompt())
+        {
+            logger.warning("Exiting...");
+            logger.flush();
+            return 0;
+        };
 
+        // generate video
+        gen.generate();
+    }
+    else
+    {
+        logger.info("Decoding video");
+        dec.calculate_requiraments();
+
+        if (!logger.continue_prompt())
+        {
+            logger.warning("Exiting...");
+            logger.flush();
+            return 0;
+        };
+
+        dec.decode();
+    }
     logger.info("Done");
     logger.flush();
     return 0;
