@@ -28,6 +28,8 @@ namespace decoder
     }
     uint8_t *Decoder::decode_frame(size_t frame_index, size_t *data_size)
     {
+        uint8_t *input_frame = this->get_video_frame(frame_index);
+
         if (frame_index >= this->total_frames)
         {
             logger.error("Frame index out of range");
@@ -37,11 +39,110 @@ namespace decoder
         if (frame_index < HEADER_FRAMES)
         {
             // get specific pixels of header frames to read information about video encoding
+            uint16_t version_major = 0;
+            uint16_t version_minor = 0;
+            uint16_t version_patch = 0;
+
+            uint8_t *current_byte = input_frame;
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    utils::pixel p = this->get_pixel(input_frame, (i * 8) + j, HEADER_PIXEL_SIZE);
+                    uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
+                    if (distance > 128)
+                    {
+                        switch (i)
+                        {
+                        case 0:
+                            version_major |= 1 << (i * 8) + j;
+                            break;
+                        case 1:
+                            version_minor |= 1 << (i * 8) + j;
+                            break;
+                        case 2:
+                            version_patch |= 1 << (i * 8) + j;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        switch (i)
+                        {
+                        case 0:
+                            version_major &= ~(1 << (i * 8) + j);
+                            break;
+                        case 1:
+                            version_minor &= ~(1 << (i * 8) + j);
+                            break;
+                        case 2:
+                            version_patch &= ~(1 << (i * 8) + j);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            logger.debug("Version: " + std::to_string(version_major) + "." + std::to_string(version_minor) + "." + std::to_string(version_patch));
+
             return nullptr;
         }
 
         return nullptr;
     }
+
+    utils::pixel Decoder::get_pixel(uint8_t *data, size_t n, size_t pixel_size)
+    {
+        size_t offset = n * pixel_size;
+        return utils::pixel(data[offset], data[offset + 1], data[offset + 2]);
+    }
+
+    uint8_t *Decoder::get_video_frame(size_t frame_index)
+    {
+        AVPacket packet;
+        av_init_packet(&packet);
+
+        while (true)
+        {
+            if (av_read_frame(this->format_context, &packet) < 0)
+            {
+                logger.error("Failed to read frame");
+                exit(1);
+            }
+
+            if (packet.stream_index == this->video_stream_index)
+            {
+                break;
+            }
+        }
+
+        AVFrame *frame = av_frame_alloc();
+        if (!frame)
+        {
+            logger.error("Failed to allocate frame");
+            exit(1);
+        }
+
+        int response = avcodec_send_packet(this->format_context->streams[this->video_stream_index]->codecpar->codec_id, &packet);
+        if (response < 0)
+        {
+            logger.error("Failed to send packet");
+            exit(1);
+        }
+
+        response = avcodec_receive_frame(this->format_context->streams[this->video_stream_index]->codecpar->codec_id, frame);
+        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+        {
+            logger.error("Failed to receive frame");
+            exit(1);
+        }
+
+        av_packet_unref(&packet);
+
+        return frame->data[0];
+    }
+
     void Decoder::calculate_requiraments()
     {
         // open file
