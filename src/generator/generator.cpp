@@ -78,7 +78,7 @@ namespace generator
         // =====================
         //  actual calculations
         // =====================
-        this->input_file = new generator::File(settings::input_file_path);
+        this->input_file = new generator::FileInput(settings::input_file_path);
 
         // frame capacity
         free(this->generate_frame_header(0, 0)); // to generate frame header size

@@ -8,11 +8,11 @@
 
 namespace generator
 {
-    class File
+    class FileInput
     {
     public:
-        File(std::filesystem::path path);
-        ~File();
+        FileInput(std::filesystem::path path);
+        ~FileInput();
         unsigned long size();
         long bytes_left(size_t start);
         uint8_t *read(size_t start, size_t size);
@@ -20,6 +20,19 @@ namespace generator
     private:
         std::filesystem::path path;
         std::ifstream file;
+        void check_open();
+    };
+
+    class FileOutput
+    {
+    public:
+        FileOutput(std::filesystem::path path);
+        ~FileOutput();
+        void write(uint8_t *data, size_t size);
+
+    private:
+        std::filesystem::path path;
+        std::ofstream file;
         void check_open();
     };
 }

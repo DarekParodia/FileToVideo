@@ -25,7 +25,7 @@ namespace generator
         void calculate_requiraments();
 
     private:
-        generator::File *input_file;
+        generator::FileInput *input_file;
         void exec_ffmpeg();
         void generate_header();
         uint8_t *generate_frame_header(size_t frame_index, __uint128_t hash);

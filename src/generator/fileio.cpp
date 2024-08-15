@@ -2,16 +2,16 @@
 
 namespace generator
 {
-    File::File(std::filesystem::path path)
+    FileInput::FileInput(std::filesystem::path path)
     {
         this->path = path;
     }
-    File::~File()
+    FileInput::~FileInput()
     {
         this->file.close();
     }
 
-    uint8_t *File::read(size_t start, size_t size)
+    uint8_t *FileInput::read(size_t start, size_t size)
     {
         this->check_open();
 
@@ -22,7 +22,7 @@ namespace generator
         return data;
     }
 
-    void File::check_open()
+    void FileInput::check_open()
     {
         if (!this->file.is_open())
         {
@@ -45,7 +45,7 @@ namespace generator
         }
     }
 
-    unsigned long File::size()
+    unsigned long FileInput::size()
     {
         unsigned long size;
         try
@@ -61,9 +61,51 @@ namespace generator
         return size;
     }
 
-    long File::bytes_left(size_t start)
+    long FileInput::bytes_left(size_t start)
     {
         return this->size() - start;
     }
 
+    //
+    // ============================== FILE OUTPUT ==============================
+    //
+
+    FileOutput::FileOutput(std::filesystem::path path)
+    {
+        this->path = path;
+    }
+    FileOutput::~FileOutput()
+    {
+        this->file.close();
+    }
+
+    void FileOutput::write(uint8_t *data, size_t size)
+    {
+        this->check_open();
+
+        this->file.write((char *)data, size);
+    }
+
+    void FileOutput::check_open()
+    {
+        if (!this->file.is_open())
+        {
+            try
+            {
+                this->file.open(this->path, std::ios::binary);
+            }
+            catch (std::exception &e)
+            {
+                logger.error("Failed to open output file: " + this->path.string());
+                logger.error(e.what());
+                exit(1);
+            }
+
+            if (!this->file.is_open())
+            {
+                logger.error("Failed to open output file: " + this->path.string());
+                exit(1);
+            }
+        }
+    }
 }

@@ -10,6 +10,37 @@ namespace decoder
     }
     void Decoder::decode()
     {
+        this->output_file = new generator::FileOutput(settings::output_file_path);
+
+        // header frames
+        for (int i = 0; i < HEADER_FRAMES; i++)
+        {
+            this->decode_frame(i, nullptr);
+        }
+
+        for (int i = HEADER_FRAMES; i < this->total_frames; i++)
+        {
+            size_t data_size;
+            uint8_t *data = this->decode_frame(i, &data_size);
+            this->output_file->write(data, data_size);
+            delete[] data;
+        }
+    }
+    uint8_t *Decoder::decode_frame(size_t frame_index, size_t *data_size)
+    {
+        if (frame_index >= this->total_frames)
+        {
+            logger.error("Frame index out of range");
+            exit(1);
+        }
+
+        if (frame_index < HEADER_FRAMES)
+        {
+            // get specific pixels of header frames to read information about video encoding
+            return nullptr;
+        }
+
+        return nullptr;
     }
     void Decoder::calculate_requiraments()
     {
@@ -51,11 +82,15 @@ namespace decoder
         settings::video::height = this->codec_parameters->height;
         settings::video::fps = av_q2d(this->format_context->streams[this->video_stream_index]->avg_frame_rate);
 
+        this->frame_size = this->codec_parameters->width * this->codec_parameters->height * 3;
+        this->total_frames = this->format_context->streams[this->video_stream_index]->nb_frames;
+
         // print video info
         logger.info("Video info:");
         logger.info("Width: " + std::to_string(settings::video::width));
         logger.info("Height: " + std::to_string(settings::video::height));
         logger.info("FPS: " + std::to_string(settings::video::fps));
+        logger.info("Total frames: " + std::to_string(this->total_frames));
     }
 
 }
