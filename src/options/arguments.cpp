@@ -157,7 +157,6 @@ namespace arguments
     {
         name = "debug";
         description = "Enable debug mode";
-        shortcall = "-d";
         longcall = "--debug";
         required = false;
     }
@@ -179,6 +178,212 @@ namespace arguments
     }
 
     //
+    // ================ decode ================
+    //
+
+    decode::decode()
+    {
+        name = "decode";
+        description = "Decode a video to a file";
+        longcall = "--decode";
+        shortcall = "-d";
+        required = false;
+    }
+
+    decode::~decode()
+    {
+    }
+
+    void decode::execute(std::string arg)
+    {
+        logger.debug("Executing decode option with argument: " + arg);
+
+        settings::decode = true;
+        this->executed = true;
+    }
+
+    void decode::check()
+    {
+    }
+
+    //
+    // ================ width ================
+    //
+
+    width::width()
+    {
+        name = "width";
+        description = "The width of the video";
+        longcall = "--width";
+        shortcall = "-w";
+        required = false;
+    }
+
+    width::~width()
+    {
+    }
+
+    void width::execute(std::string arg)
+    {
+        logger.debug("Executing width option with argument: " + arg);
+
+        std::string value = get_arg_value(arg);
+
+        if (value.empty())
+        {
+            logger.error("No value specified for width option");
+            exit(1);
+        }
+
+        settings::video::width = std::stoi(value);
+        this->executed = true;
+    }
+
+    void width::check()
+    {
+    }
+
+    //
+    // ================ height ================
+    //
+
+    height::height()
+    {
+        name = "height";
+        description = "The height of the video";
+        longcall = "--height";
+        shortcall = "-h";
+        required = false;
+    }
+
+    height::~height()
+    {
+    }
+
+    void height::execute(std::string arg)
+    {
+        logger.debug("Executing height option with argument: " + arg);
+
+        std::string value = get_arg_value(arg);
+
+        if (value.empty())
+        {
+            logger.error("No value specified for height option");
+            exit(1);
+        }
+
+        settings::video::height = std::stoi(value);
+        this->executed = true;
+    }
+
+    void height::check()
+    {
+    }
+
+    //
+    // ================ fps ================
+    //
+
+    fps::fps()
+    {
+        name = "fps";
+        description = "The frames per second of the video";
+        longcall = "--fps";
+        shortcall = "-f";
+        required = false;
+    }
+
+    fps::~fps()
+    {
+    }
+
+    void fps::execute(std::string arg)
+    {
+        logger.debug("Executing fps option with argument: " + arg);
+
+        std::string value = get_arg_value(arg);
+
+        if (value.empty())
+        {
+            logger.error("No value specified for fps option");
+            exit(1);
+        }
+
+        settings::video::fps = std::stoi(value);
+        this->executed = true;
+    }
+
+    void fps::check()
+    {
+    }
+
+    //
+    // ================ pixel_size ================
+    //
+
+    pixel_size::pixel_size()
+    {
+        name = "pixel_size";
+        description = "The size of a pixel in the video";
+        longcall = "--pixel-size";
+        shortcall = "-p";
+        required = false;
+    }
+
+    pixel_size::~pixel_size()
+    {
+    }
+
+    void pixel_size::execute(std::string arg)
+    {
+        logger.debug("Executing pixel_size option with argument: " + arg);
+
+        std::string value = get_arg_value(arg);
+
+        if (value.empty())
+        {
+            logger.error("No value specified for pixel_size option");
+            exit(1);
+        }
+
+        settings::video::pixel_size = std::stoi(value);
+        this->executed = true;
+    }
+
+    void pixel_size::check()
+    {
+    }
+
+    //
+    // ================ use_color ================
+    //
+
+    use_color::use_color()
+    {
+        name = "use_color";
+        description = "Use color in the video";
+        longcall = "--use-color";
+        shortcall = "-c";
+        required = false;
+    }
+
+    use_color::~use_color()
+    {
+    }
+
+    void use_color::execute(std::string arg)
+    {
+        logger.debug("Executing use_color option with argument: " + arg);
+
+        settings::video::use_color = true;
+        this->executed = true;
+    }
+
+    void use_color::check()
+    {
+    }
+
+    //
     // ================ Global Argument List ================
     //
 
@@ -186,5 +391,11 @@ namespace arguments
         new input_file(),
         new output_file(),
         new ffmpeg_path(),
-        new debug()};
+        new debug(),
+        new decode(),
+        new width(),
+        new height(),
+        new fps(),
+        new pixel_size(),
+        new use_color()};
 }
