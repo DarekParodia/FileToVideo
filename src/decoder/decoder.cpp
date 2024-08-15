@@ -94,53 +94,159 @@ namespace decoder
 
     utils::pixel Decoder::get_pixel(uint8_t *data, size_t n, size_t pixel_size)
     {
-        size_t offset = n * pixel_size;
-        return utils::pixel(data[offset], data[offset + 1], data[offset + 2]);
+        utils::pixel *pixel_data = new utils::pixel[pixel_size * pixel_size];
+        for (size_t i = 0; i < pixel_size; i++)
+        {
+            for (size_t j = 0; j < pixel_size * 3; j++)
+            {
+                uint8_t *data_index = data + j + (i * settings::video::width * 3);
+                pixel_data[j + (i * pixel_size)] = utils::pixel(data_index[0], data_index[1], data_index[2]);
+            }
+        }
+        utils::pixel average = utils::get_average_color(pixel_data, pixel_size * pixel_size);
+        delete[] pixel_data;
+        return average;
     }
 
     uint8_t *Decoder::get_video_frame(size_t frame_index)
     {
+        logger.debug("Getting frame: " + std::to_string(frame_index));
         AVPacket packet;
+        AVFrame *frame = av_frame_alloc();
+
         av_init_packet(&packet);
 
-        while (true)
+        this->format_context = avformat_alloc_context();
+        if (!this->format_context)
         {
-            if (av_read_frame(this->format_context, &packet) < 0)
-            {
-                logger.error("Failed to read frame");
-                exit(1);
-            }
+            logger.error("Failed to allocate format context");
+            exit(1);
+        }
 
-            if (packet.stream_index == this->video_stream_index)
+        // open file
+        if (avformat_open_input(&this->format_context, settings::input_file_path.c_str(), NULL, NULL) != 0)
+        {
+            logger.error("Failed to open file: " + settings::input_file_path);
+            exit(1);
+        }
+
+        // get stream info
+        if (avformat_find_stream_info(this->format_context, NULL) < 0)
+        {
+            logger.error("Failed to find stream info");
+            exit(1);
+        }
+
+        // find video stream
+        this->video_stream_index = -1;
+        for (int i = 0; i < this->format_context->nb_streams; i++)
+        {
+            if (this->format_context->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
             {
+                this->video_stream_index = i;
                 break;
             }
         }
 
-        AVFrame *frame = av_frame_alloc();
-        if (!frame)
+        if (this->video_stream_index == -1)
         {
-            logger.error("Failed to allocate frame");
+            logger.error("Failed to find video stream");
             exit(1);
         }
 
-        int response = avcodec_send_packet(this->format_context->streams[this->video_stream_index]->codecpar->codec_id, &packet);
-        if (response < 0)
+        // read frame
+        this->codec_parameters = this->format_context->streams[this->video_stream_index]->codecpar;
+        AVCodec *codec = const_cast<AVCodec *>(avcodec_find_decoder(this->codec_parameters->codec_id));
+
+        if (!codec)
         {
-            logger.error("Failed to send packet");
+            logger.error("Failed to find codec");
             exit(1);
         }
 
-        response = avcodec_receive_frame(this->format_context->streams[this->video_stream_index]->codecpar->codec_id, frame);
-        if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+        // open codec
+        AVCodecContext *codec_context = avcodec_alloc_context3(codec);
+        if (!codec_context)
         {
-            logger.error("Failed to receive frame");
+            logger.error("Failed to allocate codec context");
             exit(1);
         }
 
+        // copy codec parameters
+        if (avcodec_parameters_to_context(codec_context, this->codec_parameters) < 0)
+        {
+            logger.error("Failed to copy codec parameters to codec context");
+            exit(1);
+        }
+
+        // init codec
+        if (avcodec_open2(codec_context, codec, NULL) < 0)
+        {
+            logger.error("Failed to open codec");
+            exit(1);
+        }
+
+        // read frames until we reach the desired frame (this need optimization in the future)
+        int frame_count = 0;
+        while (av_read_frame(this->format_context, &packet) >= 0)
+        {
+            if (packet.stream_index == this->video_stream_index)
+            {
+                int response = avcodec_send_packet(codec_context, &packet);
+                if (response < 0)
+                {
+                    logger.error("Failed to send packet to codec");
+                    exit(1);
+                }
+
+                response = avcodec_receive_frame(codec_context, frame);
+                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+                {
+                    continue;
+                }
+                else if (response < 0)
+                {
+                    logger.error("Failed to receive frame from codec");
+                    exit(1);
+                }
+
+                if (frame_count == frame_index)
+                {
+                    break;
+                }
+                frame_count++;
+            }
+            av_packet_unref(&packet);
+        }
+
+        // convert frame to RGB
+        AVFrame *rgb_frame = av_frame_alloc();
+        if (!rgb_frame)
+        {
+            logger.error("Failed to allocate RGB frame");
+            exit(1);
+        }
+
+        int num_bytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, codec_context->width, codec_context->height, 1);
+        uint8_t *buffer = (uint8_t *)av_malloc(num_bytes * sizeof(uint8_t));
+        av_image_fill_arrays(rgb_frame->data, rgb_frame->linesize, buffer, AV_PIX_FMT_RGB24, codec_context->width, codec_context->height, 1);
+
+        struct SwsContext *sws_context = sws_getContext(codec_context->width, codec_context->height, codec_context->pix_fmt, codec_context->width, codec_context->height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+        if (!sws_context)
+        {
+            logger.error("Failed to create sws context");
+            exit(1);
+        }
+
+        sws_scale(sws_context, frame->data, frame->linesize, 0, codec_context->height, rgb_frame->data, rgb_frame->linesize);
+
+        // cleanup
         av_packet_unref(&packet);
+        av_frame_free(&frame);
+        av_frame_free(&rgb_frame);
+        sws_freeContext(sws_context);
 
-        return frame->data[0];
+        return buffer;
     }
 
     void Decoder::calculate_requiraments()
