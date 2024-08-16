@@ -111,33 +111,41 @@ namespace decoder
     uint8_t *Decoder::get_video_frame(size_t frame_index)
     {
         logger.debug("Getting frame: " + std::to_string(frame_index));
+
         AVPacket packet;
         AVFrame *frame = av_frame_alloc();
 
-        av_init_packet(&packet);
+        if (!frame)
+        {
+            logger.error("Failed to allocate frame");
+            return nullptr;
+        }
 
         this->format_context = avformat_alloc_context();
         if (!this->format_context)
         {
             logger.error("Failed to allocate format context");
-            exit(1);
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // open file
+        // Open file
         if (avformat_open_input(&this->format_context, settings::input_file_path.c_str(), NULL, NULL) != 0)
         {
             logger.error("Failed to open file: " + settings::input_file_path);
-            exit(1);
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // get stream info
+        // Get stream info
         if (avformat_find_stream_info(this->format_context, NULL) < 0)
         {
             logger.error("Failed to find stream info");
-            exit(1);
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // find video stream
+        // Find video stream
         this->video_stream_index = -1;
         for (int i = 0; i < this->format_context->nb_streams; i++)
         {
@@ -151,44 +159,52 @@ namespace decoder
         if (this->video_stream_index == -1)
         {
             logger.error("Failed to find video stream");
-            exit(1);
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // read frame
+        // Read frame
         this->codec_parameters = this->format_context->streams[this->video_stream_index]->codecpar;
         AVCodec *codec = const_cast<AVCodec *>(avcodec_find_decoder(this->codec_parameters->codec_id));
 
         if (!codec)
         {
             logger.error("Failed to find codec");
-            exit(1);
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // open codec
+        // Open codec
         AVCodecContext *codec_context = avcodec_alloc_context3(codec);
         if (!codec_context)
         {
             logger.error("Failed to allocate codec context");
-            exit(1);
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // copy codec parameters
+        // Copy codec parameters
         if (avcodec_parameters_to_context(codec_context, this->codec_parameters) < 0)
         {
             logger.error("Failed to copy codec parameters to codec context");
-            exit(1);
+            avcodec_free_context(&codec_context); // Free codec context before returning
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // init codec
+        // Init codec
         if (avcodec_open2(codec_context, codec, NULL) < 0)
         {
             logger.error("Failed to open codec");
-            exit(1);
+            avcodec_free_context(&codec_context); // Free codec context before returning
+            av_frame_free(&frame);
+            return nullptr;
         }
 
-        // read frames until we reach the desired frame (this need optimization in the future)
+        // Read frames until we reach the desired frame
         int frame_count = 0;
-        while (av_read_frame(this->format_context, &packet) >= 0)
+        bool frame_found = false;
+        while (av_read_frame(this->format_context, &packet) >= 0 && !frame_found)
         {
             if (packet.stream_index == this->video_stream_index)
             {
@@ -196,7 +212,9 @@ namespace decoder
                 if (response < 0)
                 {
                     logger.error("Failed to send packet to codec");
-                    exit(1);
+                    av_packet_unref(&packet); // Unreference the packet to avoid memory leak
+                    av_frame_free(&frame);
+                    return nullptr;
                 }
 
                 response = avcodec_receive_frame(codec_context, frame);
@@ -207,24 +225,27 @@ namespace decoder
                 else if (response < 0)
                 {
                     logger.error("Failed to receive frame from codec");
-                    exit(1);
+                    av_packet_unref(&packet); // Unreference the packet to avoid memory leak
+                    av_frame_free(&frame);
+                    return nullptr;
                 }
 
                 if (frame_count == frame_index)
                 {
-                    break;
+                    frame_found = true;
                 }
                 frame_count++;
             }
             av_packet_unref(&packet);
         }
 
-        // convert frame to RGB
+        // Convert frame to RGB
         AVFrame *rgb_frame = av_frame_alloc();
         if (!rgb_frame)
         {
             logger.error("Failed to allocate RGB frame");
-            exit(1);
+            av_frame_free(&frame);
+            return nullptr;
         }
 
         int num_bytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, codec_context->width, codec_context->height, 1);
@@ -235,16 +256,20 @@ namespace decoder
         if (!sws_context)
         {
             logger.error("Failed to create sws context");
-            exit(1);
+            av_frame_free(&frame);
+            av_frame_free(&rgb_frame);
+            av_freep(&buffer);
+            return nullptr;
         }
 
         sws_scale(sws_context, frame->data, frame->linesize, 0, codec_context->height, rgb_frame->data, rgb_frame->linesize);
 
-        // cleanup
+        // Cleanup
         av_packet_unref(&packet);
         av_frame_free(&frame);
         av_frame_free(&rgb_frame);
         sws_freeContext(sws_context);
+        av_freep(&buffer);
 
         return buffer;
     }
