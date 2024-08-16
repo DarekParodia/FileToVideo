@@ -166,7 +166,7 @@ namespace decoder
     uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
     {
         logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
-        if (!isHeader)
+        if (isHeader)
         {
             // get specific pixels of header frames to read information about video encoding
             uint16_t version_major = 0;
@@ -232,18 +232,18 @@ namespace decoder
         size_t total_pixels = pixel_size * pixel_size;
         utils::pixel *temp_pixels = new utils::pixel[total_pixels];
         int pixel_counter = 0;
+        uint8_t *current_byte = data + n * 3;
 
         for (size_t i = 0; i < pixel_size; ++i)
         {
             for (size_t j = 0; j < pixel_size; ++j)
             {
-                size_t height_offset = settings::video::width * 3 * i;
-                uint8_t *data_offset = data + (n * pixel_size * 3) + (j * 3) + height_offset;
-                utils::pixel p = utils::pixel(*data_offset, *(data_offset + 1), *(data_offset + 2));
-                logger.debug("Pixel: " + std::to_string(p.r) + ", " + std::to_string(p.g) + ", " + std::to_string(p.b));
-                temp_pixels[pixel_counter] = p;
+                temp_pixels[pixel_counter] = utils::pixel(current_byte[0], current_byte[1], current_byte[2]);
+                logger.debug("Pixel: " + std::to_string(temp_pixels[pixel_counter].r) + " " + std::to_string(temp_pixels[pixel_counter].g) + " " + std::to_string(temp_pixels[pixel_counter].b) + " colors in ansi: " + utils::get_ansi_color("■", temp_pixels[pixel_counter]));
                 pixel_counter++;
+                current_byte += 3;
             }
+            current_byte += settings::video::width * 3; // skip to next row of pixels
         }
 
         // Calculate the average color of all pixels in the square area.

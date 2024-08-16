@@ -40,4 +40,9 @@ namespace utils
         pixel distances = get_pixel_distances(a, b);
         return (distances.r + distances.g + distances.b) / 3;
     }
+
+    std::string get_ansi_color(std::string string, pixel color)
+    {
+        return "\033[38;2;" + std::to_string(color.r) + ";" + std::to_string(color.g) + ";" + std::to_string(color.b) + "m" + string + "\033[0m";
+    }
 }

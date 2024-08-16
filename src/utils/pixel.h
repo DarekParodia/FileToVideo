@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 
 namespace utils
 {
@@ -17,5 +18,6 @@ namespace utils
     pixel get_pixel_diff(pixel a, pixel b);
     pixel get_pixel_distances(pixel a, pixel b);
     uint8_t get_pixel_distance(pixel a, pixel b);
+    std::string get_ansi_color(std::string string, pixel color);
 
 }
