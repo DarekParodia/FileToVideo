@@ -12,31 +12,156 @@ namespace decoder
     {
         this->output_file = new generator::FileOutput(settings::output_file_path);
 
-        // header frames
-        for (int i = 0; i < HEADER_FRAMES; i++)
-        {
-            this->decode_frame(i, nullptr);
-        }
+        // read frame data and write to file
+        AVFormatContext *pFormatCtx = nullptr;
+        AVCodecContext *pCodecCtx = nullptr;
+        AVFrame *pFrame = av_frame_alloc();
+        AVPacket packet;
+        int videoStreamIndex = -1;
+        AVCodec *pCodec = nullptr;
 
-        for (int i = HEADER_FRAMES; i < this->total_frames; i++)
+        // Open video file
+        if (avformat_open_input(&pFormatCtx, settings::input_file_path.c_str(), NULL, NULL) != 0)
         {
-            size_t data_size;
-            uint8_t *data = this->decode_frame(i, &data_size);
-            this->output_file->write(data, data_size);
-            delete[] data;
-        }
-    }
-    uint8_t *Decoder::decode_frame(size_t frame_index, size_t *data_size)
-    {
-        uint8_t *input_frame = this->get_video_frame(frame_index);
-
-        if (frame_index >= this->total_frames)
-        {
-            logger.error("Frame index out of range");
+            logger.error("Failed to open file: " + settings::input_file_path);
             exit(1);
         }
 
-        if (frame_index < HEADER_FRAMES)
+        // Get stream info
+        if (avformat_find_stream_info(pFormatCtx, NULL) < 0)
+        {
+            logger.error("Failed to find stream info");
+            exit(1);
+        }
+
+        // Find video stream
+        for (int i = 0; i < pFormatCtx->nb_streams; i++)
+        {
+            if (pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+            {
+                videoStreamIndex = i;
+                break;
+            }
+        }
+
+        if (videoStreamIndex == -1)
+        {
+            logger.error("Failed to find video stream");
+            exit(1);
+        }
+
+        // Get codec parameters
+        this->codec_parameters = pFormatCtx->streams[videoStreamIndex]->codecpar;
+
+        // Find decoder
+        pCodec = const_cast<AVCodec *>(avcodec_find_decoder(this->codec_parameters->codec_id));
+        if (pCodec == NULL)
+        {
+            logger.error("Failed to find decoder");
+            exit(1);
+        }
+
+        // Allocate codec context
+        pCodecCtx = avcodec_alloc_context3(pCodec);
+        if (pCodecCtx == NULL)
+        {
+            logger.error("Failed to allocate codec context");
+            exit(1);
+        }
+
+        // Copy codec parameters to codec context
+        if (avcodec_parameters_to_context(pCodecCtx, this->codec_parameters) < 0)
+        {
+            logger.error("Failed to copy codec parameters to codec context");
+            exit(1);
+        }
+
+        // Open codec
+        if (avcodec_open2(pCodecCtx, pCodec, NULL) < 0)
+        {
+            logger.error("Failed to open codec");
+            exit(1);
+        }
+
+        // Read frames
+        int frameCount = 0;
+        AVFrame *pFrameRGB = av_frame_alloc();
+        if (pFrameRGB == NULL)
+        {
+            logger.error("Failed to allocate RGB frame");
+            exit(1);
+        }
+
+        int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height, 1);
+        uint8_t *buffer = (uint8_t *)av_malloc(numBytes * sizeof(uint8_t));
+        av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, buffer, AV_PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height, 1);
+
+        struct SwsContext *swsContext = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+        if (swsContext == NULL)
+        {
+            logger.error("Failed to create sws context");
+            exit(1);
+        }
+
+        while (av_read_frame(pFormatCtx, &packet) >= 0)
+        {
+            if (packet.stream_index == videoStreamIndex)
+            {
+                int response = avcodec_send_packet(pCodecCtx, &packet);
+                if (response < 0)
+                {
+                    logger.error("Failed to send packet to codec");
+                    av_packet_unref(&packet); // Unreference the packet to avoid memory leak
+                    break;
+                }
+
+                response = avcodec_receive_frame(pCodecCtx, pFrame);
+                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+                {
+                    continue;
+                }
+                else if (response < 0)
+                {
+                    logger.error("Failed to receive frame from codec");
+                    av_packet_unref(&packet); // Unreference the packet to avoid memory leak
+                    break;
+                }
+
+                sws_scale(swsContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
+
+                // Decode frame
+                size_t dataSize = 0;
+                uint8_t *decodedFrame = this->decode_frame(buffer, &dataSize, frameCount == 0);
+                if (decodedFrame != nullptr)
+                {
+                    if (frameCount < HEADER_FRAMES)
+                    {
+                        this->decode_frame(buffer, &dataSize, true);
+                    }
+                    else
+                    {
+                        this->decode_frame(buffer, &dataSize, false);
+                    }
+                }
+
+                frameCount++;
+            }
+            av_packet_unref(&packet);
+        }
+
+        // Cleanup
+        av_frame_free(&pFrame);
+        av_frame_free(&pFrameRGB);
+        avcodec_free_context(&pCodecCtx);
+        avformat_close_input(&pFormatCtx);
+        avformat_free_context(pFormatCtx);
+        av_freep(&buffer);
+        sws_freeContext(swsContext);
+    }
+    uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
+    {
+        logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
+        if (isHeader)
         {
             // get specific pixels of header frames to read information about video encoding
             uint16_t version_major = 0;
@@ -265,11 +390,10 @@ namespace decoder
         sws_scale(sws_context, frame->data, frame->linesize, 0, codec_context->height, rgb_frame->data, rgb_frame->linesize);
 
         // Cleanup
-        av_packet_unref(&packet);
-        av_frame_free(&frame);
-        av_frame_free(&rgb_frame);
-        sws_freeContext(sws_context);
-        av_freep(&buffer);
+        // av_packet_unref(&packet);
+        // av_frame_free(&frame);
+        // av_frame_free(&rgb_frame);
+        // sws_freeContext(sws_context);
 
         return buffer;
     }
