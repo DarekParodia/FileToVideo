@@ -14,6 +14,8 @@ extern "C"
 #include "utils/general.h"
 #include "utils/pixel.h"
 #include "generator/fileio.h"
+#include "generator/generator.h"
+#include "generator/hash.h"
 
 namespace decoder
 {

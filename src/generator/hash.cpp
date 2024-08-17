@@ -11,7 +11,7 @@ __uint128_t generator::hash(const uint8_t *data, size_t size) // very simple and
         hash *= prime;
     }
 
-    // logger.debug("Hash: " + bytes_to_hex_string((uint8_t *)&hash, 16)); // Adjusted for standard string conversion
+    logger.debug("Hash: " + bytes_to_hex_string((uint8_t *)&hash, 16)); // Adjusted for standard string conversion
 
     return hash;
 }

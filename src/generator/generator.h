@@ -23,16 +23,16 @@ namespace generator
         ~Generator();
         void generate();
         void calculate_requiraments();
+        uint8_t *generate_frame_header(size_t frame_index, __uint128_t hash);
+        size_t frame_header_size;
 
     private:
         generator::FileInput *input_file;
         void exec_ffmpeg();
         void generate_header();
-        uint8_t *generate_frame_header(size_t frame_index, __uint128_t hash);
         uint8_t *generate_frame(size_t frame_index);
         uint8_t *header;
         size_t header_size;
-        size_t frame_header_size;
         size_t bits_per_frame;
         size_t total_frames;
         size_t video_duration;
