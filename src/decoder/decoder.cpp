@@ -165,9 +165,7 @@ namespace decoder
 
     uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
     {
-        this->output_file->write(input_frame, this->frame_size);
-
-        logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
+        // logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
         if (isHeader)
         {
             // get specific pixels of header frames to read information about video encoding
@@ -202,7 +200,7 @@ namespace decoder
                             break;
                         }
                     }
-                    else
+                    else // it doesn't have to set to 0 because it is already 0 but who cares
                     {
                         switch (i)
                         {
@@ -229,6 +227,68 @@ namespace decoder
                 exit(1);
             }
 
+            // read video settings
+            settings::video::pixel_size = 0;
+            settings::video::color_space = 0;
+            settings::video::use_color = false;
+
+            pixel_counter += 4 * 8 * 3;  // skip width, height and fps pixels
+            for (int i = 0; i < 32; i++) // pixel size
+            {
+                utils::pixel p = this->get_pixel(input_frame, pixel_counter, HEADER_PIXEL_SIZE);
+                pixel_counter++;
+                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
+                if (distance > 128)
+                {
+                    settings::video::pixel_size |= 1 << i - 1; // minus 1 because it is unsigned int (no sign bit)
+                }
+                else
+                {
+                    settings::video::pixel_size &= ~(1 << i - 1);
+                }
+            }
+
+            for (int i = 0; i < 32; i++) // color space
+            {
+                utils::pixel p = this->get_pixel(input_frame, pixel_counter, HEADER_PIXEL_SIZE);
+                pixel_counter++;
+                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
+                if (distance > 128)
+                {
+                    settings::video::color_space |= 1 << i - 1;
+                }
+                else
+                {
+                    settings::video::color_space &= ~(1 << i - 1);
+                }
+            }
+
+            // booleans
+            for (int i = 0; i < 8; i++)
+            {
+                utils::pixel p = this->get_pixel(input_frame, pixel_counter, HEADER_PIXEL_SIZE);
+                pixel_counter++;
+                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
+                if (distance > 128)
+                {
+                    switch (i)
+                    {
+                    case 7:
+                        settings::video::use_color = true;
+                        break;
+                    }
+                }
+            }
+
+            logger.debug("Detected video settings:");
+            logger.debug("Width: " + std::to_string(settings::video::width));
+            logger.debug("Height: " + std::to_string(settings::video::height));
+            logger.debug("FPS: " + std::to_string(settings::video::fps));
+            logger.debug("Pixel size: " + std::to_string(settings::video::pixel_size));
+            logger.debug("Color space: " + std::to_string(settings::video::color_space));
+            logger.debug("Total frames: " + std::to_string(this->total_frames));
+            logger.debug("Use color: " + std::to_string(settings::video::use_color));
+
             return nullptr;
         }
 
@@ -241,14 +301,14 @@ namespace decoder
         utils::pixel *temp_pixels = (utils::pixel *)malloc(total_pixels * sizeof(utils::pixel));
         int pixel_counter = 0;
         uint8_t *current_byte = data + (n * 3 * pixel_size);
-        logger.debug("pixel n:" + std::to_string(n));
+        // logger.debug("pixel n:" + std::to_string(n));
         for (size_t i = 0; i < pixel_size; ++i)
         {
             for (size_t j = 0; j < pixel_size; ++j)
             {
                 temp_pixels[pixel_counter] = utils::pixel(current_byte[0], current_byte[1], current_byte[2]);
-                logger.debug("Pixel address: 0x" + std::to_string((uintptr_t)(current_byte - data)));
-                logger.debug("Pixel r: " + std::to_string(current_byte[0]) + " g: " + std::to_string(current_byte[1]) + " b: " + std::to_string(current_byte[2]));
+                // logger.debug("Pixel address: 0x" + std::to_string((uintptr_t)(current_byte - data)));
+                // logger.debug("Pixel r: " + std::to_string(current_byte[0]) + " g: " + std::to_string(current_byte[1]) + " b: " + std::to_string(current_byte[2]));
                 pixel_counter++;
                 current_byte += 3;
             }
