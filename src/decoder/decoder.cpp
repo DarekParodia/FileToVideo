@@ -295,87 +295,96 @@ namespace decoder
             // calculate storage size
             free(gen.generate_frame_header(0, 0)); // generate header to get header size
             size_t header_size = gen.frame_header_size;
-            size_t bits_per_frame = (settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size);
-            if (settings::video::use_color)
-                bits_per_frame *= 3;                                                  // rgb
-            size_t total_frame_bytes = bits_per_frame * 8;                            // total bits in frame
-            bits_per_frame -= header_size * 8 * (settings::video::use_color ? 3 : 1); // remove header bits
+            size_t bits_in_frame = settings::video::width * settings::video::height * 3;
 
-            uint8_t *data = (uint8_t *)malloc(bits_per_frame / 8); // file data buffor
-            memset(data, 0, bits_per_frame / 8);
-
-            uint8_t *decoded_frame = (uint8_t *)malloc(total_frame_bytes); // decoded frame buffor
-
-            // read header
-            size_t frame_index = 0;
-            __uint128_t hash = 0;
-
+            uint8_t *decoded_data = (uint8_t *)malloc((bits_in_frame / 8) * sizeof(uint8_t));
             size_t bit_counter = 0;
 
-            // decode frame
-            for (; bit_counter < bits_per_frame;)
+            for (; bit_counter < bits_in_frame;)
             {
                 utils::pixel p = this->get_pixel(input_frame, pixel_counter, settings::video::pixel_size);
                 pixel_counter++;
-
                 if (!settings::video::use_color)
-                { // black and white (1 bit per pixel)
+                {
                     uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
                     if (distance > 128)
                     {
-                        decoded_frame[bit_counter / 8] |= 1 << (bit_counter % 8);
+                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
                     }
                     else
                     {
-                        decoded_frame[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
                     }
                     bit_counter++;
                 }
                 else
-                { // color (3 bits per pixel)
+                {
                     p = utils::get_pixel_distances(p, utils::pixel(0, 0, 0));
-
                     if (p.r > 128)
                     {
-                        decoded_frame[bit_counter / 8] |= 1 << (bit_counter % 8);
+                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
                     }
                     else
                     {
-                        decoded_frame[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
                     }
                     bit_counter++;
+
+                    if (bit_counter >= bits_in_frame)
+                    {
+                        break;
+                    }
 
                     if (p.g > 128)
                     {
-                        decoded_frame[bit_counter / 8] |= 1 << (bit_counter % 8);
+                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
                     }
                     else
                     {
-                        decoded_frame[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
                     }
                     bit_counter++;
+
+                    if (bit_counter >= bits_in_frame)
+                    {
+                        break;
+                    }
 
                     if (p.b > 128)
                     {
-                        decoded_frame[bit_counter / 8] |= 1 << (bit_counter % 8);
+                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
                     }
                     else
                     {
-                        decoded_frame[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
                     }
+
                     bit_counter++;
+
+                    if (bit_counter >= bits_in_frame)
+                    {
+                        break;
+                    }
                 }
             }
 
-            // copy from decoded frame to variables
-            memcpy(&frame_index, decoded_frame, sizeof(size_t));
-            memcpy(&hash, decoded_frame + sizeof(size_t), sizeof(__uint128_t));
+            uint8_t *current_byte = decoded_data;
 
-            logger.debug("Frame index decoded: " + std::to_string(frame_index));
-            logger.debug("Hash decoded: " + bytes_to_hex_string((uint8_t *)&hash, 16));
-            __uint128_t calculated_hash = generator::hash(decoded_frame + sizeof(size_t) + sizeof(__uint128_t), bits_per_frame / 8);
+            // first 24 bytes are header
+            size_t frame_index = 0;
+            __uint128_t hash = 0;
 
-            bit_counter = 0;
+            // copy header
+            memcpy(&frame_index, current_byte, sizeof(size_t));
+            current_byte += sizeof(size_t);
+            memcpy(&hash, current_byte, sizeof(__uint128_t));
+            current_byte += sizeof(__uint128_t);
+
+            logger.debug("Frame index: " + std::to_string(frame_index));
+            logger.debug("Hash: " + bytes_to_hex_string((uint8_t *)&hash, 16));
+            logger.debug("Data: " + bytes_to_hex_string(current_byte, 32));
+
+            return current_byte;
         }
         return nullptr;
     }

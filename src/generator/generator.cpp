@@ -56,7 +56,7 @@ namespace generator
             // wait for ffmpeg to start (this has to change in the future)
             usleep(1000000);
 
-            for (size_t i = 0; i < this->total_frames; i++)
+            for (size_t i = 0; i < this->total_frames + RELIABILITY_FRAMES; i++)
             {
                 uint8_t *frame_buffer = this->generate_frame(i);
                 write(fd[1], frame_buffer, settings::video::width * settings::video::height * 3);
@@ -262,6 +262,12 @@ namespace generator
             size_t data_offset = (frame_index - HEADER_FRAMES) * (this->bits_per_frame / 8);
 
             uint8_t *data = this->input_file->read(data_offset, this->bits_per_frame / 8);
+
+            if (frame_index >= this->total_frames) // no data failsafe
+            {
+                memset(data, 0xff / 2, this->bits_per_frame / 8);
+            }
+
             uint8_t *header = this->generate_frame_header(frame_index, generator::hash(data, this->bits_per_frame / 8));
 
             uint8_t *temp_data_buffor = static_cast<uint8_t *>(malloc(this->bits_per_frame / 8 + this->frame_header_size + 1));
