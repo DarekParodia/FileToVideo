@@ -236,14 +236,25 @@ namespace generator
         memset(frame_data, 0, bytes_per_frame);
         memset(frame, 0xff / 2, frame_size); // after end of header fill the rest of the frame with gray color
 
-        // generate header frames
         if (isHeader)
         {
             memcpy(frame_data, this->header, this->header_size);
         }
         else
         {
-            // generate video frames
+            // generate frame header
+            uint8_t *file_buffer = this->input_file->read(bytes_per_frame - this->frame_header_size);
+            __uint128_t hash = generator::hash(file_buffer, bytes_per_frame - this->frame_header_size);
+            uint8_t *frame_header = this->generate_frame_header(frame_index, hash);
+
+            // copy frame header to frame data
+            memcpy(frame_data, frame_header, this->frame_header_size);
+
+            // copy file buffer to frame data
+            memcpy(frame_data + this->frame_header_size, file_buffer, bytes_per_frame - this->frame_header_size);
+
+            free(file_buffer);
+            free(frame_header);
         }
 
         // go through all pixels and set them
@@ -252,6 +263,24 @@ namespace generator
         {
             for (size_t i = 0; i < ((settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size)); i++)
             {
+                if (settings::video::use_color)
+                {
+                    // get 3 bits from frame data
+                    bool bit = (frame_data[bit_counter / 8] >> (7 - (bit_counter % 8))) & 1;
+                    bool bit2 = (frame_data[(bit_counter + 1) / 8] >> (7 - ((bit_counter + 1) % 8))) & 1;
+                    bool bit3 = (frame_data[(bit_counter + 2) / 8] >> (7 - ((bit_counter + 2) % 8))) & 1;
+                    utils::pixel p = {bit ? 0xff : 0x00, bit2 ? 0xff : 0x00, bit3 ? 0xff : 0x00};
+                    this->set_byte(frame, i, p, settings::video::pixel_size);
+                    bit_counter += 3;
+                }
+                else
+                {
+                    // get 1 bit from frame data
+                    bool bit = (frame_data[bit_counter / 8] >> (7 - (bit_counter % 8))) & 1;
+                    utils::pixel p = {bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00};
+                    this->set_byte(frame, i, p, settings::video::pixel_size);
+                    bit_counter++;
+                }
             }
         }
         else

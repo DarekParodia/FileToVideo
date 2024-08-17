@@ -16,10 +16,12 @@ namespace generator
         unsigned long size();
         long bytes_left(size_t start);
         uint8_t *read(size_t start, size_t size);
+        uint8_t *read(size_t size);
 
     private:
         std::filesystem::path path;
         std::ifstream file;
+        size_t pointer;
         void check_open();
     };
 

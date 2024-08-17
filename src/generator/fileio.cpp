@@ -22,6 +22,12 @@ namespace generator
         return data;
     }
 
+    uint8_t *FileInput::read(size_t size)
+    {
+        this->pointer += size;
+        return this->read(this->pointer - size, size);
+    }
+
     void FileInput::check_open()
     {
         if (!this->file.is_open())
