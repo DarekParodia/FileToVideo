@@ -3,7 +3,7 @@
 #include <string>
 
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
+#define VERSION_MINOR 2
 #define VERSION_PATCH 0
 
 #define HEADER_FRAMES 2 // WATNING!! don't change this value to ensure that header is 100% readable for the decoder

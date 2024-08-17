@@ -5,6 +5,14 @@
 #include <iomanip>
 #include <sstream>
 
+// version struct
+typedef struct version
+{
+    uint16_t major;
+    uint16_t minor;
+    uint16_t patch;
+} version;
+
 // char array to string
 std::string char_array_to_string(const char **arr, int size);
 

@@ -165,6 +165,8 @@ namespace decoder
 
     uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
     {
+        this->output_file->write(input_frame, this->frame_size);
+
         logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
         if (isHeader)
         {
@@ -219,7 +221,13 @@ namespace decoder
                 }
             }
 
-            logger.debug("Version: " + std::to_string(version_major) + "." + std::to_string(version_minor) + "." + std::to_string(version_patch));
+            logger.info("Detected Version: " + std::to_string(version_major) + "." + std::to_string(version_minor) + "." + std::to_string(version_patch));
+
+            if (version_major != VERSION_MAJOR || version_minor != VERSION_MINOR || version_patch != VERSION_PATCH)
+            {
+                logger.warning("Unsupported encoding version. Use correct version of this program to decode or rerun the program with the correct argument to ignore."); // I might do multiversion support in the future but for now it is not needed
+                exit(1);
+            }
 
             return nullptr;
         }
@@ -230,20 +238,21 @@ namespace decoder
     utils::pixel Decoder::get_pixel(uint8_t *data, size_t n, size_t pixel_size)
     {
         size_t total_pixels = pixel_size * pixel_size;
-        utils::pixel *temp_pixels = new utils::pixel[total_pixels];
+        utils::pixel *temp_pixels = (utils::pixel *)malloc(total_pixels * sizeof(utils::pixel));
         int pixel_counter = 0;
-        uint8_t *current_byte = data + n * 3;
-
+        uint8_t *current_byte = data + (n * 3 * pixel_size);
+        logger.debug("pixel n:" + std::to_string(n));
         for (size_t i = 0; i < pixel_size; ++i)
         {
             for (size_t j = 0; j < pixel_size; ++j)
             {
                 temp_pixels[pixel_counter] = utils::pixel(current_byte[0], current_byte[1], current_byte[2]);
-                logger.debug("Pixel: " + std::to_string(temp_pixels[pixel_counter].r) + " " + std::to_string(temp_pixels[pixel_counter].g) + " " + std::to_string(temp_pixels[pixel_counter].b) + " colors in ansi: " + utils::get_ansi_color("■", temp_pixels[pixel_counter]));
+                logger.debug("Pixel address: 0x" + std::to_string((uintptr_t)(current_byte - data)));
+                logger.debug("Pixel r: " + std::to_string(current_byte[0]) + " g: " + std::to_string(current_byte[1]) + " b: " + std::to_string(current_byte[2]));
                 pixel_counter++;
                 current_byte += 3;
             }
-            current_byte += settings::video::width * 3; // skip to next row of pixels
+            current_byte += settings::video::width * 3 - (pixel_size * 3); // skip to next row of pixels
         }
 
         // Calculate the average color of all pixels in the square area.
