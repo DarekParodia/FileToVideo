@@ -221,128 +221,104 @@ namespace generator
         uint8_t *frame = static_cast<uint8_t *>(malloc(frame_size));
         uint8_t *current_pixel = frame;
 
+        size_t bytes_per_frame = this->bits_per_frame / 8 + this->frame_header_size * 8;
+
+        if (frame_index < HEADER_FRAMES)
+        {
+            bytes_per_frame = ((settings::video::width / HEADER_PIXEL_SIZE) * (settings::video::height / HEADER_PIXEL_SIZE));
+            if (settings::video::use_color)
+                bytes_per_frame *= 3;
+        }
+
+        uint8_t *frame_data = static_cast<uint8_t *>(malloc(bytes_per_frame));
+
         size_t pixel_counter = 0;
 
         memset(frame, 0xff / 2, frame_size); // after end of header fill the rest of the frame with gray color
 
-        // generate frame header (hardcoded for now)
+        // generate header frames
         if (frame_index < HEADER_FRAMES)
         {
-            for (size_t i = 0; i < this->header_size; i++)
-            {
-                for (int bit_i = 0; bit_i < 8; bit_i++)
-                {
-                    bool bit = (this->header[i] >> bit_i) & 1;
-                    for (size_t j = 0; j < HEADER_PIXEL_SIZE; j++)
-                    {
-                        for (size_t k = 0; k < HEADER_PIXEL_SIZE; k++)
-                        {
-                            size_t height_off = settings::video::width * 3 * k;
-
-                            current_pixel[0 + height_off] = bit ? 255 : 0;
-                            current_pixel[1 + height_off] = bit ? 255 : 0;
-                            current_pixel[2 + height_off] = bit ? 255 : 0;
-                        }
-                        current_pixel += 3; // 3 bytes per pixel
-                        pixel_counter += 3;
-
-                        if (pixel_counter % (settings::video::width * 3) == 0) // skip height of pixel from pixelsize
-                        {
-                            size_t height_off = settings::video::width * 3 * (HEADER_PIXEL_SIZE - 1);
-                            current_pixel += height_off;
-                            pixel_counter += height_off;
-                        }
-                    }
-                }
-            }
+            memcpy(frame_data, this->header, this->header_size);
         }
         else
         {
-            // actual data encoding
-            size_t data_offset = (frame_index - HEADER_FRAMES) * (this->bits_per_frame / 8);
+            // generate video frames
+        }
 
-            uint8_t *data = this->input_file->read(data_offset, this->bits_per_frame / 8);
+        // convert frame_data to frame
+        size_t current_bit = 0;
+        for (; current_bit < bytes_per_frame * 8;)
+        {
 
-            if (frame_index >= this->total_frames) // no data failsafe
+            if (!settings::video::use_color || frame_index < HEADER_FRAMES)
             {
-                memset(data, 0xff / 2, this->bits_per_frame / 8);
+                bool bit = (frame_data[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+                utils::pixel p = utils::pixel(bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00);
+                if (frame_index < HEADER_FRAMES)
+                    this->set_pixel(frame, pixel_counter, p, HEADER_PIXEL_SIZE);
+                else
+                    this->set_pixel(frame, pixel_counter, p, settings::video::pixel_size);
+                current_bit++;
             }
-
-            uint8_t *header = this->generate_frame_header(frame_index, generator::hash(data, this->bits_per_frame / 8));
-
-            uint8_t *temp_data_buffor = static_cast<uint8_t *>(malloc(this->bits_per_frame / 8 + this->frame_header_size + 1));
-
-            // firstly write header
-            memcpy(temp_data_buffor, header, this->frame_header_size);
-            free(header);
-
-            // then write data
-            memcpy(temp_data_buffor + this->frame_header_size, data, this->bits_per_frame / 8);
-            free(data);
-
-            size_t current_bit = 0;
-
-            logger.debug("bits left:" + std::to_string(this->input_file->bytes_left(data_offset) * 8));
-            // encode data to frame
-            for (size_t i = 0; i < this->bits_per_frame; i++)
+            else
             {
-                if (this->input_file->bytes_left(current_bit / 8) <= 0) // no data failsafe
+                utils::pixel p = utils::pixel(0, 0, 0);
+                try
+                {
+                    bool bit = (frame_data[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
+                    p.r = bit ? 0xff : 0x00;
+                }
+                catch (const std::exception &e)
                 {
                     break;
                 }
-                for (size_t j = 0; j < settings::video::pixel_size; j++)
+                current_bit++;
+                try
                 {
-                    for (size_t k = 0; k < settings::video::pixel_size; k++)
-                    {
-                        size_t height_off = settings::video::width * 3 * k;
-                        if (settings::video::use_color)
-                        {
-                            if (!(current_bit >= this->bits_per_frame))
-                            {
-                                bool r = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
-                                current_pixel[0 + height_off] = r ? 255 : 0;
-                            }
-                            else
-                            {
-                                break;
-                            }
-                            if (!(current_bit + 1 >= this->bits_per_frame))
-                            {
-                                bool g = (temp_data_buffor[(current_bit + 1) / 8] >> (7 - ((current_bit + 1) % 8))) & 1;
-                                current_pixel[1 + height_off] = g ? 255 : 0;
-                            }
-                            if (!(current_bit + 2 >= this->bits_per_frame))
-                            {
-                                bool b = (temp_data_buffor[(current_bit + 2) / 8] >> (7 - ((current_bit + 2) % 8))) & 1;
-                                current_pixel[2 + height_off] = b ? 255 : 0;
-                            }
-                        }
-                        else
-                        {
-                            bool bit = (temp_data_buffor[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
-                            current_pixel[0 + height_off] = bit ? 255 : 0;
-                            current_pixel[1 + height_off] = bit ? 255 : 0;
-                            current_pixel[2 + height_off] = bit ? 255 : 0;
-                        }
-                    }
-
-                    current_pixel += 3; // 3 bytes per pixel
-                    pixel_counter += 3;
-
-                    if (pixel_counter % (settings::video::width * 3) == 0) // skip height of pixel from pixelsize
-                    {
-                        size_t height_off = settings::video::width * 3 * (settings::video::pixel_size - 1);
-                        current_pixel += height_off;
-                        pixel_counter += height_off;
-                    }
-                }
-                if (settings::video::use_color)
-                    current_bit += 3;
-                else
+                    bool bit = (frame_data[(current_bit) / 8] >> (7 - ((current_bit) % 8))) & 1;
+                    p.g = bit ? 0xff : 0x00;
                     current_bit++;
+                }
+                catch (const std::exception &e)
+                {
+                    break;
+                }
+                try
+                {
+                    bool bit = (frame_data[(current_bit) / 8] >> (7 - ((current_bit) % 8))) & 1;
+                    p.b = bit ? 0xff : 0x00;
+                }
+                catch (const std::exception &e)
+                {
+                    break;
+                }
+                current_bit++;
+
+                this->set_pixel(frame, pixel_counter, p, settings::video::pixel_size);
             }
+            pixel_counter++;
         }
+
         return frame;
+    }
+
+    void Generator::set_pixel(uint8_t *frame, size_t n, utils::pixel pixel, size_t pixel_size)
+    {
+        int pixel_counter = 0;
+        uint8_t *current_byte = frame + (n * 3 * pixel_size);
+        for (size_t i = 0; i < pixel_size; ++i)
+        {
+            for (size_t j = 0; j < pixel_size; ++j)
+            {
+                current_byte[0] = pixel.r;
+                current_byte[1] = pixel.g;
+                current_byte[2] = pixel.b;
+                pixel_counter++;
+                current_byte += 3;
+            }
+            current_byte += settings::video::width * 3 - (pixel_size * 3); // skip to next row of pixels
+        }
     }
 }
 generator::Generator gen;
