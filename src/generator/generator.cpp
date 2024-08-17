@@ -216,28 +216,28 @@ namespace generator
     }
     uint8_t *Generator::generate_frame(size_t frame_index)
     {
-        // create data buffer
         size_t frame_size = settings::video::width * settings::video::height * 3;
-        uint8_t *frame = static_cast<uint8_t *>(malloc(frame_size));
-        uint8_t *current_pixel = frame;
+        size_t bytes_per_frame = ((settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size));
+        bool isHeader = frame_index < HEADER_FRAMES;
 
-        size_t bytes_per_frame = this->bits_per_frame / 8 + this->frame_header_size * 8;
-
-        if (frame_index < HEADER_FRAMES)
+        if (isHeader)
         {
             bytes_per_frame = ((settings::video::width / HEADER_PIXEL_SIZE) * (settings::video::height / HEADER_PIXEL_SIZE));
-            if (settings::video::use_color)
-                bytes_per_frame *= 3;
         }
 
+        if (settings::video::use_color)
+            bytes_per_frame *= 3;
+
         uint8_t *frame_data = static_cast<uint8_t *>(malloc(bytes_per_frame));
+        uint8_t *frame = static_cast<uint8_t *>(malloc(frame_size));
 
         size_t pixel_counter = 0;
 
+        memset(frame_data, 0, bytes_per_frame);
         memset(frame, 0xff / 2, frame_size); // after end of header fill the rest of the frame with gray color
 
         // generate header frames
-        if (frame_index < HEADER_FRAMES)
+        if (isHeader)
         {
             memcpy(frame_data, this->header, this->header_size);
         }
@@ -246,78 +246,42 @@ namespace generator
             // generate video frames
         }
 
-        // convert frame_data to frame
-        size_t current_bit = 0;
-        for (; current_bit < bytes_per_frame * 8;)
+        // go through all pixels and set them
+        size_t bit_counter = 0;
+        if (!isHeader)
         {
-
-            if (!settings::video::use_color || frame_index < HEADER_FRAMES)
+            for (size_t i = 0; i < ((settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size)); i++)
             {
-                bool bit = (frame_data[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
-                utils::pixel p = utils::pixel(bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00);
-                if (frame_index < HEADER_FRAMES)
-                    this->set_pixel(frame, pixel_counter, p, HEADER_PIXEL_SIZE);
-                else
-                    this->set_pixel(frame, pixel_counter, p, settings::video::pixel_size);
-                current_bit++;
             }
-            else
-            {
-                utils::pixel p = utils::pixel(0, 0, 0);
-                try
-                {
-                    bool bit = (frame_data[current_bit / 8] >> (7 - (current_bit % 8))) & 1;
-                    p.r = bit ? 0xff : 0x00;
-                }
-                catch (const std::exception &e)
-                {
-                    break;
-                }
-                current_bit++;
-                try
-                {
-                    bool bit = (frame_data[(current_bit) / 8] >> (7 - ((current_bit) % 8))) & 1;
-                    p.g = bit ? 0xff : 0x00;
-                    current_bit++;
-                }
-                catch (const std::exception &e)
-                {
-                    break;
-                }
-                try
-                {
-                    bool bit = (frame_data[(current_bit) / 8] >> (7 - ((current_bit) % 8))) & 1;
-                    p.b = bit ? 0xff : 0x00;
-                }
-                catch (const std::exception &e)
-                {
-                    break;
-                }
-                current_bit++;
-
-                this->set_pixel(frame, pixel_counter, p, settings::video::pixel_size);
-            }
-            pixel_counter++;
         }
-
+        else
+        {
+            for (size_t i = 0; i < ((settings::video::width / HEADER_PIXEL_SIZE) * (settings::video::height / HEADER_PIXEL_SIZE)); i++)
+            {
+                // get 3 bits from frame data
+                bool bit = (frame_data[bit_counter / 8] >> (7 - (bit_counter % 8))) & 1;
+                utils::pixel p = {bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00};
+                this->set_byte(frame, i, p, HEADER_PIXEL_SIZE);
+                bit_counter++;
+            }
+        }
         return frame;
     }
 
-    void Generator::set_pixel(uint8_t *frame, size_t n, utils::pixel pixel, size_t pixel_size)
+    void Generator::set_byte(uint8_t *frame, size_t n, utils::pixel p, size_t pixel_size)
     {
-        int pixel_counter = 0;
-        uint8_t *current_byte = frame + (n * 3 * pixel_size);
-        for (size_t i = 0; i < pixel_size; ++i)
+        size_t row = n / (settings::video::width / pixel_size);
+        uint8_t *current_byte = frame + (row * settings::video::width * 3 * pixel_size) + ((n % (settings::video::width / pixel_size)) * 3 * pixel_size);
+        for (size_t i = 0; i < pixel_size; i++)
         {
-            for (size_t j = 0; j < pixel_size; ++j)
+            for (size_t j = 0; j < pixel_size; j++)
             {
-                current_byte[0] = pixel.r;
-                current_byte[1] = pixel.g;
-                current_byte[2] = pixel.b;
-                pixel_counter++;
+                current_byte[0] = p.r;
+                current_byte[1] = p.g;
+                current_byte[2] = p.b;
                 current_byte += 3;
             }
-            current_byte += settings::video::width * 3 - (pixel_size * 3); // skip to next row of pixels
+            current_byte += settings::video::width * 3 - (pixel_size * 3);
         }
     }
 }

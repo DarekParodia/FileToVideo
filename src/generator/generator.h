@@ -31,7 +31,7 @@ namespace generator
         generator::FileInput *input_file;
         void exec_ffmpeg();
         void generate_header();
-        void set_pixel(uint8_t *frame, size_t n, utils::pixel pixel, size_t pixel_size);
+        void set_byte(uint8_t *frame, size_t n, utils::pixel p, size_t pixel_size);
         uint8_t *generate_frame(size_t frame_index);
         uint8_t *header;
         size_t header_size;
