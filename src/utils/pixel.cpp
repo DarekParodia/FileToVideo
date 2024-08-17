@@ -3,17 +3,21 @@
 namespace utils
 {
     pixel get_average_color(pixel *pixels, size_t size)
-    {
+    { // this should be improved in the future
+        size_t avg_r = 0;
+        size_t avg_g = 0;
+        size_t avg_b = 0;
         pixel average = {0, 0, 0};
         for (size_t i = 0; i < size; i++)
         {
-            average.r += pixels[i].r;
-            average.g += pixels[i].g;
-            average.b += pixels[i].b;
+            avg_r += pixels[i].r;
+            avg_g += pixels[i].g;
+            avg_b += pixels[i].b;
         }
-        average.r /= size;
-        average.g /= size;
-        average.b /= size;
+        average.r = avg_r / size;
+        average.g = avg_g / size;
+        average.b = avg_b / size;
+
         return average;
     }
 
