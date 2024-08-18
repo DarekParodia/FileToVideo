@@ -194,17 +194,17 @@ namespace decoder
             if (use_color)
             {
                 pixel = utils::get_pixel_distances(pixel, utils::pixel(0, 0, 0));
-                decoded_data[current_bit / 8] |= (pixel.r > 127) << 7 - (current_bit % 8);
+                decoded_data[current_bit / 8] |= (pixel.r > 127) << (current_bit % 8);
                 current_bit++;
-                decoded_data[current_bit / 8] |= (pixel.g > 127) << 7 - (current_bit % 8);
+                decoded_data[current_bit / 8] |= (pixel.g > 127) << (current_bit % 8);
                 current_bit++;
-                decoded_data[current_bit / 8] |= (pixel.b > 127) << 7 - (current_bit % 8);
+                decoded_data[current_bit / 8] |= (pixel.b > 127) << (current_bit % 8);
                 current_bit++;
             }
             else
             {
                 uint8_t distance = utils::get_pixel_distance(pixel, utils::pixel(0, 0, 0));
-                decoded_data[current_bit / 8] |= (distance > 127) << 7 - (current_bit % 8);
+                decoded_data[current_bit / 8] |= (distance > 127) << (current_bit % 8);
                 current_bit++;
             }
         }
@@ -281,7 +281,8 @@ namespace decoder
         size_t total_pixels = pixel_size * pixel_size;
         utils::pixel *temp_pixels = (utils::pixel *)malloc(total_pixels * sizeof(utils::pixel));
         int pixel_counter = 0;
-        uint8_t *current_byte = data + (n * 3 * pixel_size);
+        size_t row = n / (settings::video::width / pixel_size);
+        uint8_t *current_byte = data + (row * settings::video::width * 3 * pixel_size) + ((n % (settings::video::width / pixel_size)) * 3 * pixel_size);
         // logger.debug("pixel n:" + std::to_string(n));
         for (size_t i = 0; i < pixel_size; ++i)
         {

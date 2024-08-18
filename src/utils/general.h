@@ -24,3 +24,6 @@ std::string format_bytes(unsigned long bytes);
 std::string bytes_to_hex_string(const uint8_t *bytes, size_t size);
 
 std::string bytes_to_bit_string(const uint8_t *bytes, size_t size);
+
+bool get_bit(uint8_t byte, int bit);
+void set_bit(uint8_t &byte, int bit, bool value);

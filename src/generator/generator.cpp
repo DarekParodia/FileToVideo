@@ -2,6 +2,7 @@
 
 namespace generator
 {
+
     Generator::Generator()
     {
         this->generate_header(); // to ensure that at least default header exists
@@ -248,6 +249,7 @@ namespace generator
             if (this->input_file->eof())
             {
                 logger.warning("End of file reached");
+                memset(file_buffer, 0, bytes_per_frame - this->frame_header_size);
             }
             __uint128_t hash = generator::hash(file_buffer, bytes_per_frame - this->frame_header_size);
             uint8_t *frame_header = this->generate_frame_header(frame_index, hash);
@@ -264,6 +266,7 @@ namespace generator
 
         // go through all pixels and set them
         size_t bit_counter = 0;
+        uint8_t *current_byte = frame_data;
         if (!isHeader)
         {
             for (size_t i = 0; i < ((settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size)); i++)
@@ -271,20 +274,39 @@ namespace generator
                 if (settings::video::use_color)
                 {
                     // get 3 bits from frame data
-                    bool bit = (frame_data[bit_counter / 8] >> ((bit_counter % 8))) & 1;
-                    bool bit2 = (frame_data[(bit_counter + 1) / 8] >> (((bit_counter + 1) % 8))) & 1;
-                    bool bit3 = (frame_data[(bit_counter + 2) / 8] >> (((bit_counter + 2) % 8))) & 1;
-                    utils::pixel p = {bit ? 0xff : 0x00, bit2 ? 0xff : 0x00, bit3 ? 0xff : 0x00};
+                    bool red = get_bit(*current_byte, bit_counter % 8);
+                    bit_counter++;
+                    if (bit_counter % 8 == 0)
+                    {
+                        current_byte++;
+                    }
+                    bool green = get_bit(*current_byte, bit_counter % 8);
+                    bit_counter++;
+                    if (bit_counter % 8 == 0)
+                    {
+                        current_byte++;
+                    }
+                    bool blue = get_bit(*current_byte, bit_counter % 8);
+                    bit_counter++;
+                    if (bit_counter % 8 == 0)
+                    {
+                        current_byte++;
+                    }
+
+                    utils::pixel p = {red ? 0xff : 0x00, green ? 0xff : 0x00, blue ? 0xff : 0x00};
                     this->set_byte(frame, i, p, settings::video::pixel_size);
-                    bit_counter += 3;
                 }
                 else
                 {
                     // get 1 bit from frame data
-                    bool bit = (frame_data[bit_counter / 8] >> ((bit_counter % 8))) & 1;
+                    bool bit = get_bit(*current_byte, bit_counter % 8);
                     utils::pixel p = {bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00};
                     this->set_byte(frame, i, p, settings::video::pixel_size);
                     bit_counter++;
+                    if (bit_counter % 8 == 0)
+                    {
+                        current_byte++;
+                    }
                 }
             }
         }
@@ -292,11 +314,14 @@ namespace generator
         {
             for (size_t i = 0; i < ((settings::video::width / HEADER_PIXEL_SIZE) * (settings::video::height / HEADER_PIXEL_SIZE)); i++)
             {
-                // get 3 bits from frame data
-                bool bit = (frame_data[bit_counter / 8] >> (7 - (bit_counter % 8))) & 1;
+                bool bit = get_bit(*current_byte, bit_counter % 8);
                 utils::pixel p = {bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00};
                 this->set_byte(frame, i, p, HEADER_PIXEL_SIZE);
                 bit_counter++;
+                if (bit_counter % 8 == 0)
+                {
+                    current_byte++;
+                }
             }
         }
         return frame;

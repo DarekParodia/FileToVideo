@@ -95,3 +95,20 @@ std::string bytes_to_bit_string(const uint8_t *bytes, size_t size)
     }
     return ss.str();
 }
+
+bool get_bit(uint8_t byte, int bit)
+{
+    return (byte >> bit) & 1;
+}
+
+void set_bit(uint8_t &byte, int bit, bool value)
+{
+    if (value)
+    {
+        byte |= 1 << bit;
+    }
+    else
+    {
+        byte &= ~(1 << bit);
+    }
+}
