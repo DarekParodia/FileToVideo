@@ -182,6 +182,7 @@ namespace decoder
         }
 
         uint8_t *decoded_data = (uint8_t *)malloc((bits_in_frame / 8) * sizeof(uint8_t));
+        uint8_t *decoded_data_start = decoded_data;
         memset(decoded_data, 0, (bits_in_frame / 8) * sizeof(uint8_t));
 
         // go trough all pixels
@@ -215,7 +216,7 @@ namespace decoder
 
         // now all bits from video frame are stored in decoded_data
         // we need to just copy it
-        current_byte = decoded_data;
+        current_byte = decoded_data_start;
 
         if (isHeader)
         {

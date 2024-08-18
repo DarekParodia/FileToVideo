@@ -196,7 +196,9 @@ namespace generator
         uint8_t booleans = 0;
         booleans |= ((uint8_t)settings::video::use_color << 0); // use color
 
-        memcpy(this->header + 32, &booleans, 1);
+        logger.debug("booleans: " + bytes_to_bit_string(&booleans, 1));
+
+        memcpy(this->header + 34, &booleans, 1);
         logger.debug("Header size: " + std::to_string(this->header_size));
         logger.debug("Header: " + bytes_to_bit_string(this->header, this->header_size));
     }
