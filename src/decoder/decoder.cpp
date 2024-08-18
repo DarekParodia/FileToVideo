@@ -168,208 +168,128 @@ namespace decoder
         // logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
         uint8_t *current_byte = input_frame;
         int pixel_counter = 0;
+
+        // decode frame
+        // calculate storage size
+        free(gen.generate_frame_header(0, 0)); // generate header to get header size
+        size_t header_size = gen.frame_header_size;
+        size_t bits_in_frame = settings::video::width * settings::video::height * 3;
+
+        uint8_t *decoded_data = (uint8_t *)malloc((bits_in_frame / 8) * sizeof(uint8_t));
+        size_t bit_counter = 0;
+
+        for (; bit_counter < bits_in_frame;)
+        {
+            utils::pixel p = this->get_pixel(input_frame, pixel_counter, isHeader ? HEADER_PIXEL_SIZE : settings::video::pixel_size);
+            pixel_counter++;
+            if (!settings::video::use_color || isHeader)
+            {
+                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
+                if (distance > 128)
+                {
+                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
+                }
+                else
+                {
+                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                }
+                bit_counter++;
+            }
+            else
+            {
+                p = utils::get_pixel_distances(p, utils::pixel(0, 0, 0));
+                if (p.r > 128)
+                {
+                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
+                }
+                else
+                {
+                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                }
+                bit_counter++;
+
+                if (bit_counter >= bits_in_frame)
+                {
+                    break;
+                }
+
+                if (p.g > 128)
+                {
+                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
+                }
+                else
+                {
+                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                }
+                bit_counter++;
+
+                if (bit_counter >= bits_in_frame)
+                {
+                    break;
+                }
+
+                if (p.b > 128)
+                {
+                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
+                }
+                else
+                {
+                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
+                }
+
+                bit_counter++;
+
+                if (bit_counter >= bits_in_frame)
+                {
+                    break;
+                }
+            }
+        }
+
+        // now all bits from video frame are stored in decoded_data
+        // we need to just copy it
+        current_byte = decoded_data;
+
         if (isHeader)
         {
-            // get specific pixels of header frames to read information about video encoding
-            uint16_t version_major = 0;
-            uint16_t version_minor = 0;
-            uint16_t version_patch = 0;
+            // 6 bytes for version
+            memcpy(&this->version_major, current_byte, sizeof(uint16_t));
+            current_byte += sizeof(uint16_t);
+            memcpy(&this->version_minor, current_byte, sizeof(uint16_t));
+            current_byte += sizeof(uint16_t);
+            memcpy(&this->version_patch, current_byte, sizeof(uint16_t));
+            current_byte += sizeof(uint16_t);
 
-            for (int i = 0; i < 3; i++)
-            {
-                for (int j = 0; j < 16; j++)
-                {
-                    utils::pixel p = this->get_pixel(input_frame, pixel_counter, HEADER_PIXEL_SIZE);
-                    pixel_counter++;
-                    uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
-                    if (distance > 128)
-                    {
-                        switch (i)
-                        {
-                        case 0:
-                            // set bit of j-th position to 1
-                            version_major |= 1 << j;
-                            break;
-                        case 1:
-                            version_minor |= 1 << j;
-                            break;
-                        case 2:
-                            version_patch |= 1 << j;
-                            break;
-                        }
-                    }
-                    else // it doesn't have to set to 0 because it is already 0 but who cares
-                    {
-                        switch (i)
-                        {
-                        case 0:
-                            // set bit of j-th position to 0
-                            version_major &= ~(1 << j);
-                            break;
-                        case 1:
-                            version_minor &= ~(1 << j);
-                            break;
-                        case 2:
-                            version_patch &= ~(1 << j);
-                            break;
-                        }
-                    }
-                }
-            }
+            // skip 12 bytes of width, height and fps (we arleadly know that)
+            current_byte += 12;
 
-            logger.info("Detected Version: " + std::to_string(version_major) + "." + std::to_string(version_minor) + "." + std::to_string(version_patch));
-
-            if (version_major != VERSION_MAJOR || version_minor != VERSION_MINOR || version_patch != VERSION_PATCH)
-            {
-                logger.warning("Unsupported encoding version. Use correct version of this program to decode or rerun the program with the correct argument to ignore."); // I might do multiversion support in the future but for now it is not needed
-                exit(1);
-            }
-
-            // read video settings
+            // 16 bytes for pixel size, color space and total frames
             settings::video::pixel_size = 0;
             settings::video::color_space = 0;
-            settings::video::use_color = false;
+            this->total_frames = 0;
 
-            pixel_counter += 4 * 8 * 3;  // skip width, height and fps pixels
-            for (int i = 0; i < 32; i++) // pixel size
-            {
-                utils::pixel p = this->get_pixel(input_frame, pixel_counter, HEADER_PIXEL_SIZE);
-                pixel_counter++;
-                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
-                if (distance > 128)
-                {
-                    settings::video::pixel_size |= 1 << i - 1; // minus 1 because it is unsigned int (no sign bit)
-                }
-                else
-                {
-                    settings::video::pixel_size &= ~(1 << i - 1);
-                }
-            }
+            memcpy(&settings::video::pixel_size, current_byte, sizeof(unsigned int));
+            current_byte += sizeof(unsigned int);
 
-            for (int i = 0; i < 32; i++) // color space
-            {
-                utils::pixel p = this->get_pixel(input_frame, pixel_counter, HEADER_PIXEL_SIZE);
-                pixel_counter++;
-                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
-                if (distance > 128)
-                {
-                    settings::video::color_space |= 1 << i - 1;
-                }
-                else
-                {
-                    settings::video::color_space &= ~(1 << i - 1);
-                }
-            }
+            memcpy(&settings::video::color_space, current_byte, sizeof(unsigned int));
+            current_byte += sizeof(unsigned int);
 
-            // booleans
-            for (int i = 0; i < 8; i++)
-            {
-                utils::pixel p = this->get_pixel(input_frame, pixel_counter, HEADER_PIXEL_SIZE);
-                pixel_counter++;
-                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
-                if (distance > 128)
-                {
-                    switch (i)
-                    {
-                    case 7:
-                        settings::video::use_color = true;
-                        break;
-                    }
-                }
-            }
+            memcpy(&this->total_frames, current_byte, sizeof(size_t));
+            current_byte += sizeof(size_t);
 
-            logger.debug("Detected video settings:");
-            logger.debug("Width: " + std::to_string(settings::video::width));
-            logger.debug("Height: " + std::to_string(settings::video::height));
-            logger.debug("FPS: " + std::to_string(settings::video::fps));
-            logger.debug("Pixel size: " + std::to_string(settings::video::pixel_size));
-            logger.debug("Color space: " + std::to_string(settings::video::color_space));
-            logger.debug("Total frames: " + std::to_string(this->total_frames));
-            logger.debug("Use color: " + std::to_string(settings::video::use_color));
+            // 1 byte for booleans
 
-            return nullptr;
+            // bit 0 - use_color
+            settings::video::use_color = *current_byte & 1;
+
+            logger.info("Version: " + std::to_string(this->version_major) + "." + std::to_string(this->version_minor) + "." + std::to_string(this->version_patch));
+            logger.info("Pixel size: " + std::to_string(settings::video::pixel_size));
+            logger.info("Color space: " + std::to_string(settings::video::color_space));
+            logger.info("Total frames: " + std::to_string(this->total_frames));
+            logger.info("Use color: " + std::to_string(settings::video::use_color));
         }
         else
         {
-            // decode frame
-            // calculate storage size
-            free(gen.generate_frame_header(0, 0)); // generate header to get header size
-            size_t header_size = gen.frame_header_size;
-            size_t bits_in_frame = settings::video::width * settings::video::height * 3;
-
-            uint8_t *decoded_data = (uint8_t *)malloc((bits_in_frame / 8) * sizeof(uint8_t));
-            size_t bit_counter = 0;
-
-            for (; bit_counter < bits_in_frame;)
-            {
-                utils::pixel p = this->get_pixel(input_frame, pixel_counter, settings::video::pixel_size);
-                pixel_counter++;
-                if (!settings::video::use_color)
-                {
-                    uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
-                    if (distance > 128)
-                    {
-                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                    }
-                    else
-                    {
-                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                    }
-                    bit_counter++;
-                }
-                else
-                {
-                    p = utils::get_pixel_distances(p, utils::pixel(0, 0, 0));
-                    if (p.r > 128)
-                    {
-                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                    }
-                    else
-                    {
-                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                    }
-                    bit_counter++;
-
-                    if (bit_counter >= bits_in_frame)
-                    {
-                        break;
-                    }
-
-                    if (p.g > 128)
-                    {
-                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                    }
-                    else
-                    {
-                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                    }
-                    bit_counter++;
-
-                    if (bit_counter >= bits_in_frame)
-                    {
-                        break;
-                    }
-
-                    if (p.b > 128)
-                    {
-                        decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                    }
-                    else
-                    {
-                        decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                    }
-
-                    bit_counter++;
-
-                    if (bit_counter >= bits_in_frame)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            uint8_t *current_byte = decoded_data;
-
             // first 24 bytes are header
             size_t frame_index = 0;
             __uint128_t hash = 0;
