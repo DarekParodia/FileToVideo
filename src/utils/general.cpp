@@ -80,3 +80,18 @@ std::string bytes_to_hex_string(const uint8_t *bytes, size_t size)
     }
     return ss.str();
 }
+
+std::string bytes_to_bit_string(const uint8_t *bytes, size_t size)
+{
+    std::stringstream ss;
+    for (size_t i = 0; i < size; ++i)
+    {
+        if (i > 0)
+            ss << " ";
+        for (int j = 7; j >= 0; j--)
+        {
+            ss << ((bytes[i] >> j) & 1);
+        }
+    }
+    return ss.str();
+}

@@ -22,3 +22,5 @@ std::string get_arg_key(std::string arg);
 std::string format_bytes(unsigned long bytes);
 
 std::string bytes_to_hex_string(const uint8_t *bytes, size_t size);
+
+std::string bytes_to_bit_string(const uint8_t *bytes, size_t size);

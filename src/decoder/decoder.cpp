@@ -165,85 +165,52 @@ namespace decoder
 
     uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
     {
-        // logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
+        logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");
         uint8_t *current_byte = input_frame;
-        int pixel_counter = 0;
 
         // decode frame
         // calculate storage size
         free(gen.generate_frame_header(0, 0)); // generate header to get header size
         size_t header_size = gen.frame_header_size;
-        size_t bits_in_frame = settings::video::width * settings::video::height * 3;
+        size_t bits_in_frame = settings::video::width * settings::video::height;
+
+        bool use_color = settings::video::use_color && !isHeader;
+
+        if (use_color)
+        {
+            bits_in_frame *= 3;
+        }
 
         uint8_t *decoded_data = (uint8_t *)malloc((bits_in_frame / 8) * sizeof(uint8_t));
-        size_t bit_counter = 0;
+        memset(decoded_data, 0, (bits_in_frame / 8) * sizeof(uint8_t));
 
-        for (; bit_counter < bits_in_frame;)
+        // go trough all pixels
+        size_t current_bit = 0;
+        for (size_t i = 0; i < (settings::video::width / (isHeader ? HEADER_PIXEL_SIZE : settings::video::pixel_size)) * (settings::video::height / (isHeader ? HEADER_PIXEL_SIZE : settings::video::pixel_size)); i++)
         {
-            utils::pixel p = this->get_pixel(input_frame, pixel_counter, isHeader ? HEADER_PIXEL_SIZE : settings::video::pixel_size);
-            pixel_counter++;
-            if (!settings::video::use_color || isHeader)
+            // get pixel
+            utils::pixel pixel = this->get_pixel(input_frame, i, isHeader ? HEADER_PIXEL_SIZE : settings::video::pixel_size);
+
+            if (use_color)
             {
-                uint8_t distance = utils::get_pixel_distance(p, utils::pixel(0, 0, 0));
-                if (distance > 128)
-                {
-                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                }
-                else
-                {
-                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                }
-                bit_counter++;
+                pixel = utils::get_pixel_distances(pixel, utils::pixel(0, 0, 0));
+                decoded_data[current_bit / 8] |= (pixel.r > 127) << 7 - (current_bit % 8);
+                current_bit++;
+                decoded_data[current_bit / 8] |= (pixel.g > 127) << 7 - (current_bit % 8);
+                current_bit++;
+                decoded_data[current_bit / 8] |= (pixel.b > 127) << 7 - (current_bit % 8);
+                current_bit++;
             }
             else
             {
-                p = utils::get_pixel_distances(p, utils::pixel(0, 0, 0));
-                if (p.r > 128)
-                {
-                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                }
-                else
-                {
-                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                }
-                bit_counter++;
-
-                if (bit_counter >= bits_in_frame)
-                {
-                    break;
-                }
-
-                if (p.g > 128)
-                {
-                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                }
-                else
-                {
-                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                }
-                bit_counter++;
-
-                if (bit_counter >= bits_in_frame)
-                {
-                    break;
-                }
-
-                if (p.b > 128)
-                {
-                    decoded_data[bit_counter / 8] |= 1 << (bit_counter % 8);
-                }
-                else
-                {
-                    decoded_data[bit_counter / 8] &= ~(1 << (bit_counter % 8));
-                }
-
-                bit_counter++;
-
-                if (bit_counter >= bits_in_frame)
-                {
-                    break;
-                }
+                uint8_t distance = utils::get_pixel_distance(pixel, utils::pixel(0, 0, 0));
+                decoded_data[current_bit / 8] |= (distance > 127) << 7 - (current_bit % 8);
+                current_bit++;
             }
+        }
+        if (isHeader)
+        {
+            logger.debug("Header data: " + bytes_to_bit_string(decoded_data, 35));
         }
 
         // now all bits from video frame are stored in decoded_data

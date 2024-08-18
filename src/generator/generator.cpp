@@ -197,7 +197,7 @@ namespace generator
 
         memcpy(this->header + 32, &booleans, 1);
         logger.debug("Header size: " + std::to_string(this->header_size));
-        logger.debug("Header: " + bytes_to_hex_string(this->header, this->header_size));
+        logger.debug("Header: " + bytes_to_bit_string(this->header, this->header_size));
     }
     uint8_t *Generator::generate_frame_header(size_t frame_index, __uint128_t hash)
     {
@@ -271,9 +271,9 @@ namespace generator
                 if (settings::video::use_color)
                 {
                     // get 3 bits from frame data
-                    bool bit = (frame_data[bit_counter / 8] >> (7 - (bit_counter % 8))) & 1;
-                    bool bit2 = (frame_data[(bit_counter + 1) / 8] >> (7 - ((bit_counter + 1) % 8))) & 1;
-                    bool bit3 = (frame_data[(bit_counter + 2) / 8] >> (7 - ((bit_counter + 2) % 8))) & 1;
+                    bool bit = (frame_data[bit_counter / 8] >> ((bit_counter % 8))) & 1;
+                    bool bit2 = (frame_data[(bit_counter + 1) / 8] >> (((bit_counter + 1) % 8))) & 1;
+                    bool bit3 = (frame_data[(bit_counter + 2) / 8] >> (((bit_counter + 2) % 8))) & 1;
                     utils::pixel p = {bit ? 0xff : 0x00, bit2 ? 0xff : 0x00, bit3 ? 0xff : 0x00};
                     this->set_byte(frame, i, p, settings::video::pixel_size);
                     bit_counter += 3;
@@ -281,7 +281,7 @@ namespace generator
                 else
                 {
                     // get 1 bit from frame data
-                    bool bit = (frame_data[bit_counter / 8] >> (7 - (bit_counter % 8))) & 1;
+                    bool bit = (frame_data[bit_counter / 8] >> ((bit_counter % 8))) & 1;
                     utils::pixel p = {bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00};
                     this->set_byte(frame, i, p, settings::video::pixel_size);
                     bit_counter++;
