@@ -4,8 +4,10 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <cstring>
 
 #include "utils/logger.h"
+#include "utils/general.h"
 
 namespace generator
 {
@@ -33,11 +35,11 @@ namespace generator
         FileOutput(std::filesystem::path path);
         ~FileOutput();
         void write(uint8_t *data, size_t size);
+        void check_open();
         void clear();
 
     private:
         std::filesystem::path path;
         std::ofstream file;
-        void check_open();
     };
 }

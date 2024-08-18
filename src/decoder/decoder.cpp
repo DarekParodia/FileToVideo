@@ -103,6 +103,7 @@ namespace decoder
         }
 
         // Process frames
+        this->output_file->clear();
         while (av_read_frame(pFormatCtx, &packet) >= 0)
         {
             if (packet.stream_index == videoStreamIndex)
@@ -130,7 +131,6 @@ namespace decoder
                 sws_scale(swsContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
 
                 // Decode frame
-                this->output_file->clear();
 
                 size_t dataSize = 0;
                 uint8_t *decodedFrame = nullptr;
@@ -147,8 +147,6 @@ namespace decoder
                 if (decodedFrame != nullptr && frameCount >= HEADER_FRAMES)
                 {
                     logger.debug("Writing frame to file");
-                    logger.debug("Data: " + bytes_to_hex_string(decodedFrame, 32));
-                    logger.debug("Data size: " + std::to_string(dataSize));
                     this->output_file->write(decodedFrame, dataSize);
                 }
 
@@ -182,7 +180,7 @@ namespace decoder
         // calculate storage size
         free(gen.generate_frame_header(0, 0)); // generate header to get header size
         size_t header_size = gen.frame_header_size;
-        size_t bits_in_frame = settings::video::width * settings::video::height;
+        size_t bits_in_frame = (settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size);
 
         bool use_color = settings::video::use_color && !isHeader;
 
@@ -281,7 +279,10 @@ namespace decoder
             logger.debug("Frame index: " + std::to_string(frame_index));
             logger.debug("Hash: " + bytes_to_hex_string((uint8_t *)&hash, 16));
 
-            *data_size = (bits_in_frame / 8) - 24;
+            *data_size = bits_in_frame;
+
+            *data_size /= 8;
+            *data_size -= 24;
 
             return current_byte;
         }

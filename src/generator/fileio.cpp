@@ -93,6 +93,8 @@ namespace generator
 
     void FileOutput::write(uint8_t *data, size_t size)
     {
+        logger.debug("Data: " + bytes_to_hex_string(data, 32));
+        logger.debug("Data size: " + std::to_string(size));
         this->check_open();
 
         if (!this->file.is_open())
@@ -107,7 +109,9 @@ namespace generator
             return;
         }
 
-        this->file << std::string((char *)data, size);
+        char *cdata = (char *)data;
+
+        this->file.write(cdata, size);
 
         if (!this->file.good())
         {
