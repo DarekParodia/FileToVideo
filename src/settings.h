@@ -8,7 +8,7 @@
 
 #define HEADER_FRAMES 2 // WATNING!! don't change this value to ensure that header is 100% readable for the decoder
                         // reserving first 2 frames for header is huge waste of space but it is more reliable that way. default frames stores around 300KB (with pixel width of 1, header uses larger pixel width)of data while header needs around 37 bytes (overkill just to be sure)
-#define HEADER_PIXEL_SIZE 5
+#define HEADER_PIXEL_SIZE 16
 #define RELIABILITY_FRAMES 5 // how many blank frames at the end of the video
 
 // look for comments in .cpp file

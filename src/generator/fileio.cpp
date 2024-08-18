@@ -51,6 +51,11 @@ namespace generator
         }
     }
 
+    bool FileInput::eof()
+    {
+        return this->file.eof();
+    }
+
     unsigned long FileInput::size()
     {
         unsigned long size;

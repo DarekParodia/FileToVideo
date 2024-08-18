@@ -84,11 +84,10 @@ namespace generator
         free(this->generate_frame_header(0, 0)); // to generate frame header size
 
         this->bits_per_frame = (settings::video::width / settings::video::pixel_size) * (settings::video::height / settings::video::pixel_size);
-        this->bits_per_frame -= this->frame_header_size * 8; // remove space for frame header
-        // this->bits_per_frame *= settings::video::color_space;
-
         if (settings::video::use_color)
             this->bits_per_frame *= 3; // rgb
+
+        this->bits_per_frame -= this->frame_header_size * 8; // remove space for frame header
 
         // total frames
         this->total_frames = (size_t)ceil((double)(this->input_file->size()) / (double)(this->bits_per_frame / 8));
@@ -236,6 +235,8 @@ namespace generator
         memset(frame_data, 0, bytes_per_frame);
         memset(frame, 0xff / 2, frame_size); // after end of header fill the rest of the frame with gray color
 
+        bytes_per_frame /= 8; // convert bytes to bits (artificial bits)
+
         if (isHeader)
         {
             memcpy(frame_data, this->header, this->header_size);
@@ -244,6 +245,10 @@ namespace generator
         {
             // generate frame header
             uint8_t *file_buffer = this->input_file->read(bytes_per_frame - this->frame_header_size);
+            if (this->input_file->eof())
+            {
+                logger.warning("End of file reached");
+            }
             __uint128_t hash = generator::hash(file_buffer, bytes_per_frame - this->frame_header_size);
             uint8_t *frame_header = this->generate_frame_header(frame_index, hash);
 
