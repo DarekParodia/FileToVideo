@@ -40,8 +40,7 @@ FileToVideo is operated via command-line arguments. Navigate to the project dire
 - `-f, --fps`: Frames per second (FPS) for the generated video.
 - `-p, --pixel-size`: Size of a pixel in the generated video.
 - `-c, --use-color`: Enables color usage in the video generation process.
-- `-i, --input-file`: Path to the input file. (Required)
-- `-o, --output-file`: Specifies the output file path. (Required)
+- `-y, --no-confirm`: Skips the confirmation prompt before starting the conversion process.
 
 ## Examples
 

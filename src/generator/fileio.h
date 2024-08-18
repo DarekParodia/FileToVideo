@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 
 #include "utils/logger.h"
 
@@ -32,6 +33,7 @@ namespace generator
         FileOutput(std::filesystem::path path);
         ~FileOutput();
         void write(uint8_t *data, size_t size);
+        void clear();
 
     private:
         std::filesystem::path path;

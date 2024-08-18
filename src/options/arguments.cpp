@@ -384,6 +384,35 @@ namespace arguments
     }
 
     //
+    // ================ no_confirm ================
+    //
+
+    no_confirm::no_confirm()
+    {
+        name = "no_confirm";
+        description = "Do not prompt for confirmation";
+        longcall = "--no-confirm";
+        shortcall = "-y";
+        required = false;
+    }
+
+    no_confirm::~no_confirm()
+    {
+    }
+
+    void no_confirm::execute(std::string arg)
+    {
+        logger.debug("Executing no_confirm option with argument: " + arg);
+
+        settings::no_confirm = true;
+        this->executed = true;
+    }
+
+    void no_confirm::check()
+    {
+    }
+
+    //
     // ================ Global Argument List ================
     //
 
@@ -397,5 +426,6 @@ namespace arguments
         new height(),
         new fps(),
         new pixel_size(),
-        new use_color()};
+        new use_color(),
+        new no_confirm()};
 }

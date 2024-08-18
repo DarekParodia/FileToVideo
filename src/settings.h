@@ -24,6 +24,7 @@ namespace settings
     extern bool skip_ffmpeg_check;
     extern bool debug;
     extern bool decode;
+    extern bool no_confirm;
 
     namespace video
     {

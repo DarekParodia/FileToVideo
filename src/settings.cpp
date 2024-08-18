@@ -12,6 +12,7 @@ namespace settings
     bool skip_ffmpeg_check = false;
     bool debug = false;
     bool decode = false;
+    bool no_confirm = false;
 
     namespace video
     {

@@ -65,6 +65,10 @@ std::string Logger::prompt(std::string msg)
 
 bool Logger::confirm_prompt(std::string msg)
 {
+    if (settings::no_confirm)
+    {
+        return true;
+    }
     std::string input = prompt(msg + " [Y/n] ");
 
     std::transform(input.begin(), input.end(), input.begin(), ::tolower);

@@ -130,8 +130,10 @@ namespace decoder
                 sws_scale(swsContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
 
                 // Decode frame
+                this->output_file->clear();
+
                 size_t dataSize = 0;
-                uint8_t *decodedFrame;
+                uint8_t *decodedFrame = nullptr;
                 if (frameCount < HEADER_FRAMES)
                 {
                     decodedFrame = this->decode_frame(buffer, &dataSize, true);
@@ -142,12 +144,20 @@ namespace decoder
                 }
 
                 // Write frame to output file if it is not header
-                if (decodedFrame != nullptr)
+                if (decodedFrame != nullptr && frameCount >= HEADER_FRAMES)
                 {
+                    logger.debug("Writing frame to file");
+                    logger.debug("Data: " + bytes_to_hex_string(decodedFrame, 32));
+                    logger.debug("Data size: " + std::to_string(dataSize));
                     this->output_file->write(decodedFrame, dataSize);
                 }
 
                 frameCount++;
+
+                if (frameCount >= this->total_frames)
+                {
+                    break;
+                }
 
                 av_packet_unref(&packet);
             }
@@ -270,11 +280,12 @@ namespace decoder
 
             logger.debug("Frame index: " + std::to_string(frame_index));
             logger.debug("Hash: " + bytes_to_hex_string((uint8_t *)&hash, 16));
-            logger.debug("Data: " + bytes_to_hex_string(current_byte, 32));
+
+            *data_size = (bits_in_frame / 8) - 24;
 
             return current_byte;
         }
-        return nullptr;
+        return current_byte;
     }
 
     utils::pixel Decoder::get_pixel(uint8_t *data, size_t n, size_t pixel_size)

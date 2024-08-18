@@ -87,6 +87,7 @@ namespace generator
     }
     FileOutput::~FileOutput()
     {
+        this->file.flush();
         this->file.close();
     }
 
@@ -94,7 +95,40 @@ namespace generator
     {
         this->check_open();
 
-        this->file.write((char *)data, size);
+        if (!this->file.is_open())
+        {
+            logger.error("Error: Output file is not open.");
+            return;
+        }
+
+        if (data == nullptr || size == 0)
+        {
+            logger.warning("Warning: Attempted to write null or zero-sized data.");
+            return;
+        }
+
+        this->file << std::string((char *)data, size);
+
+        if (!this->file.good())
+        {
+            logger.error("File stream is in an error state.");
+        }
+
+        if (!this->file)
+        {
+            logger.error("Error writing to file: " + this->path.string());
+        }
+        else
+        {
+            logger.debug("Successfully wrote " + std::to_string(size) + " bytes to file: " + this->path.string());
+        }
+        this->file.flush();
+    }
+
+    void FileOutput::clear()
+    {
+        this->file.close();
+        std::filesystem::remove(this->path);
     }
 
     void FileOutput::check_open()

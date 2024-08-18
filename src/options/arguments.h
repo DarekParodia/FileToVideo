@@ -98,6 +98,14 @@ namespace arguments
         void check() override;
     };
 
+    class no_confirm : public option
+    {
+    public:
+        no_confirm();
+        ~no_confirm() override;
+        void execute(std::string arg) override;
+        void check() override;
+    };
     // Global argument list
     extern std::vector<option *> defined_options;
 
