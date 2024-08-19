@@ -295,14 +295,14 @@ namespace generator
                         current_byte++;
                     }
 
-                    utils::pixel p = {red ? 0xff : 0x00, green ? 0xff : 0x00, blue ? 0xff : 0x00};
+                    utils::pixel p = {static_cast<uint8_t>(red ? 0xff : 0x00), static_cast<uint8_t>(green ? 0xff : 0x00), static_cast<uint8_t>(blue ? 0xff : 0x00)};
                     this->set_byte(frame, i, p, settings::video::pixel_size);
                 }
                 else
                 {
                     // get 1 bit from frame data
                     bool bit = get_bit(*current_byte, bit_counter % 8);
-                    utils::pixel p = {bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00};
+                    utils::pixel p = {static_cast<uint8_t>(bit ? 0xff : 0x00), static_cast<uint8_t>(bit ? 0xff : 0x00), static_cast<uint8_t>(bit ? 0xff : 0x00)};
                     this->set_byte(frame, i, p, settings::video::pixel_size);
                     bit_counter++;
                     if (bit_counter % 8 == 0)
@@ -317,7 +317,7 @@ namespace generator
             for (size_t i = 0; i < ((settings::video::width / HEADER_PIXEL_SIZE) * (settings::video::height / HEADER_PIXEL_SIZE)); i++)
             {
                 bool bit = get_bit(*current_byte, bit_counter % 8);
-                utils::pixel p = {bit ? 0xff : 0x00, bit ? 0xff : 0x00, bit ? 0xff : 0x00};
+                utils::pixel p = {static_cast<uint8_t>(bit ? 0xff : 0x00), static_cast<uint8_t>(bit ? 0xff : 0x00), static_cast<uint8_t>(bit ? 0xff : 0x00)};
                 this->set_byte(frame, i, p, HEADER_PIXEL_SIZE);
                 bit_counter++;
                 if (bit_counter % 8 == 0)
