@@ -6,11 +6,40 @@ A command-line tool designed to convert various file formats into video presenta
 
 ## Table of Contents
 
+- [Preview](#preview)
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Arguments Guide](#arguments-guide)
 - [Examples](#examples)
 - [Contributing](#contributing)
+
+## Preview
+
+Here is an example of a video generated using FileToVideo:
+
+![FileToVideo Previw](./.github/preview.gif)
+
+## Requirements
+
+FileToVideo requires the following dependencies to be installed on your system:
+
+- ``` cmake ```
+- ``` gcc ``` or some other C++ compiler that will work
+- ``` ffmpeg ```
+- ``` youtube-dl ``` (for decoding from youtube) **OPTIONAL**
+- ``` libavcodec-dev ```
+- ``` libavformat-dev ```
+- ``` libavutil-dev ```
+- ``` libswscale-dev ```
+
+To install the required dependencies on Ubuntu, run the following commands:
+
+```bash
+sudo apt-get install cmake g++ ffmpeg youtube-dl libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+```
+
+(I have not tested this command and if dependencies names are correct but i think it should work) (i use arch btw)
 
 ## Installation
 
@@ -38,6 +67,7 @@ FileToVideo is operated via command-line arguments. Navigate to the project dire
 - `-c, --use-color`: Enables color usage in the video generation process.
 - `-y, --no-confirm`: Skips the confirmation prompt before starting the conversion process.
 - `--ffmpeg-path`: Path to the FFmpeg executable. (Required unless FFmpeg is in PATH)
+- `--ytdl-path`: Path to the youtube-dl executable. (Required unless youtube-dl is in PATH and you're decoding from youtube)
 
 ## Examples
 

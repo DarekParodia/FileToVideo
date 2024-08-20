@@ -5,6 +5,8 @@ namespace settings
 {
     std::string ffmpeg_path = "ffmpeg";
     std::string ffmpeg_additional_args = "";
+    std::string ytdl_path = "youtube-dl";
+    std::string ytdl_additional_args = "";
     std::string input_file_path = "";
     std::string output_file_path = "";
 
