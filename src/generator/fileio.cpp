@@ -126,6 +126,7 @@ namespace generator
         {
             logger.debug("Successfully wrote " + std::to_string(size) + " bytes to file: " + this->path.string());
         }
+        this->written_bytes += size;
         this->file.flush();
     }
 
@@ -133,6 +134,7 @@ namespace generator
     {
         this->file.close();
         std::filesystem::remove(this->path);
+        this->written_bytes = 0;
     }
 
     void FileOutput::check_open()
@@ -156,5 +158,10 @@ namespace generator
                 exit(1);
             }
         }
+    }
+
+    size_t FileOutput::get_written_bytes()
+    {
+        return this->written_bytes;
     }
 }

@@ -35,6 +35,7 @@ namespace decoder
         uint8_t *decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader);
         size_t frame_size;
         size_t total_frames;
+        size_t total_bytes;
         generator::FileOutput *output_file;
         uint16_t version_major;
         uint16_t version_minor;

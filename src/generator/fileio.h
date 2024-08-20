@@ -37,9 +37,11 @@ namespace generator
         void write(uint8_t *data, size_t size);
         void check_open();
         void clear();
+        size_t get_written_bytes();
 
     private:
         std::filesystem::path path;
         std::ofstream file;
+        size_t written_bytes;
     };
 }

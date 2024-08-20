@@ -104,7 +104,8 @@ namespace decoder
 
         // Process frames
         this->output_file->clear();
-        while (av_read_frame(pFormatCtx, &packet) >= 0)
+        bool done = false;
+        while (av_read_frame(pFormatCtx, &packet) >= 0 && !done)
         {
             if (packet.stream_index == videoStreamIndex)
             {
@@ -147,6 +148,12 @@ namespace decoder
                 if (decodedFrame != nullptr && frameCount >= HEADER_FRAMES)
                 {
                     logger.debug("Writing frame to file");
+                    if (this->total_bytes - this->output_file->get_written_bytes() < dataSize)
+                    {
+                        dataSize = this->total_bytes - this->output_file->get_written_bytes();
+                        done = true;
+                        logger.debug("Done decoding");
+                    }
                     this->output_file->write(decodedFrame, dataSize);
                 }
 
@@ -253,6 +260,9 @@ namespace decoder
             memcpy(&this->total_frames, current_byte, sizeof(size_t));
             current_byte += sizeof(size_t);
 
+            memcpy(&this->total_bytes, current_byte, sizeof(size_t));
+            current_byte += sizeof(size_t);
+
             // 1 byte for booleans
 
             // bit 0 - use_color
@@ -262,6 +272,7 @@ namespace decoder
             logger.info("Pixel size: " + std::to_string(settings::video::pixel_size));
             logger.info("Color space: " + std::to_string(settings::video::color_space));
             logger.info("Total frames: " + std::to_string(this->total_frames));
+            logger.info("Total bytes: " + std::to_string(this->total_bytes));
             logger.info("Use color: " + std::to_string(settings::video::use_color));
         }
         else

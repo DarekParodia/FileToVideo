@@ -38,6 +38,7 @@ namespace generator
         size_t bits_per_frame;
         size_t total_frames;
         size_t video_duration;
+        size_t input_file_size;
     };
 }
 

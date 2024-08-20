@@ -90,8 +90,10 @@ namespace generator
 
         this->bits_per_frame -= this->frame_header_size * 8; // remove space for frame header
 
+        this->input_file_size = this->input_file->size();
+
         // total frames
-        this->total_frames = (size_t)ceil((double)(this->input_file->size()) / (double)(this->bits_per_frame / 8));
+        this->total_frames = (size_t)ceil((double)(this->input_file_size) / (double)(this->bits_per_frame / 8));
         this->total_frames += HEADER_FRAMES; // first 2 frames are reserved for header; more info in settings.h
 
         // video duration
@@ -105,7 +107,7 @@ namespace generator
         logger.info("Video Info:");
         logger.info("========================"); // just for seperation
 
-        logger.info("Input file size: " + format_bytes(this->input_file->size()));
+        logger.info("Input file size: " + format_bytes(this->input_file_size));
         logger.info("Video width: " + std::to_string(settings::video::width));
         logger.info("Video height: " + std::to_string(settings::video::height));
         logger.info("Video fps: " + std::to_string(settings::video::fps));
@@ -166,6 +168,7 @@ namespace generator
         // 4 bytes - pixel size
         // 4 bytes - color space
         // 8 bytes - total frames
+        // 8 bytes - total bytes of input file
 
         // -- note: 1 byte for booleans to save space (may be changed in the future if needed)
         // byte 1
@@ -178,7 +181,7 @@ namespace generator
         uint16_t ver_patch = VERSION_PATCH;
 
         free(this->header);
-        this->header_size = 6 + 28 + 1; // 6 bytes for version, 20 bytes for video settings, 1 byte for booleans
+        this->header_size = 6 + 36 + 1; // 6 bytes for version, 20 bytes for video settings, 1 byte for booleans
         this->header = static_cast<uint8_t *>(malloc(this->header_size));
 
         // write to header buffer
@@ -192,13 +195,14 @@ namespace generator
         memcpy(this->header + 18, &settings::video::pixel_size, 4);
         memcpy(this->header + 22, &settings::video::color_space, 4);
         memcpy(this->header + 26, &this->total_frames, 8);
+        memcpy(this->header + 34, &this->input_file_size, sizeof(size_t));
 
         uint8_t booleans = 0;
         booleans |= ((uint8_t)settings::video::use_color << 0); // use color
 
         logger.debug("booleans: " + bytes_to_bit_string(&booleans, 1));
 
-        memcpy(this->header + 34, &booleans, 1);
+        memcpy(this->header + 42, &booleans, 1);
         logger.debug("Header size: " + std::to_string(this->header_size));
         logger.debug("Header: " + bytes_to_bit_string(this->header, this->header_size));
     }
@@ -251,7 +255,7 @@ namespace generator
             if (this->input_file->eof())
             {
                 logger.warning("End of file reached");
-                memset(file_buffer, 0, bytes_per_frame - this->frame_header_size);
+                // memset(file_buffer, 0, bytes_per_frame - this->frame_header_size);
             }
             __uint128_t hash = generator::hash(file_buffer, bytes_per_frame - this->frame_header_size);
             uint8_t *frame_header = this->generate_frame_header(frame_index, hash);
