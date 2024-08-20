@@ -1,24 +1,21 @@
 # FileToVideo
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E8P5UQA)
+
 A command-line tool designed to convert various file formats into video presentations. It supports decoding existing videos and generating new ones from images or other multimedia files, providing flexibility for users to create engaging video content from static sources.
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E8P5UQA)
+Here is an example of a video generated using FileToVideo:
+
+![FileToVideo Previw](./.github/preview.gif)
 
 ## Table of Contents
 
-- [Preview](#preview)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Arguments Guide](#arguments-guide)
 - [Examples](#examples)
 - [Contributing](#contributing)
-
-## Preview
-
-Here is an example of a video generated using FileToVideo:
-
-![FileToVideo Previw](./.github/preview.gif)
 
 ## Requirements
 
