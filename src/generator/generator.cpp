@@ -1,6 +1,6 @@
 #include "generator.h"
 
-namespace generator
+namespace io
 {
 
     Generator::Generator()
@@ -79,7 +79,7 @@ namespace generator
         // =====================
         //  actual calculations
         // =====================
-        this->input_file = new generator::FileInput(settings::input_file_path);
+        this->input_file = new io::FileInput(settings::input_file_path);
 
         // frame capacity
         free(this->generate_frame_header(0, 0)); // to generate frame header size
@@ -257,7 +257,7 @@ namespace generator
                 logger.warning("End of file reached");
                 // memset(file_buffer, 0, bytes_per_frame - this->frame_header_size);
             }
-            __uint128_t hash = generator::hash(file_buffer, bytes_per_frame - this->frame_header_size);
+            __uint128_t hash = io::hash(file_buffer, bytes_per_frame - this->frame_header_size);
             uint8_t *frame_header = this->generate_frame_header(frame_index, hash);
 
             // copy frame header to frame data
@@ -350,4 +350,4 @@ namespace generator
         }
     }
 }
-generator::Generator gen;
+io::Generator gen;

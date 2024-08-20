@@ -9,7 +9,7 @@
 #include "utils/logger.h"
 #include "utils/general.h"
 
-namespace generator
+namespace io
 {
     class FileInput
     {

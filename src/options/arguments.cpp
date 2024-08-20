@@ -94,7 +94,6 @@ namespace arguments
     {
         name = "ffmpeg_path";
         description = "The path to the FFmpeg executable";
-        shortcall = "-f";
         longcall = "--ffmpeg-path";
         required = true;
     }

@@ -13,9 +13,9 @@ extern "C"
 #include "utils/logger.h"
 #include "utils/general.h"
 #include "utils/pixel.h"
-#include "generator/fileio.h"
+#include "io/fileio.h"
+#include "io/hash.h"
 #include "generator/generator.h"
-#include "generator/hash.h"
 
 namespace decoder
 {
@@ -36,7 +36,7 @@ namespace decoder
         size_t frame_size;
         size_t total_frames;
         size_t total_bytes;
-        generator::FileOutput *output_file;
+        io::FileOutput *output_file;
         uint16_t version_major;
         uint16_t version_minor;
         uint16_t version_patch;

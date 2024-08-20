@@ -12,10 +12,10 @@
 #include "utils/logger.h"
 #include "utils/general.h"
 #include "utils/pixel.h"
-#include "generator/fileio.h"
-#include "generator/hash.h"
+#include "io/fileio.h"
+#include "io/hash.h"
 
-namespace generator
+namespace io
 {
     class Generator
     {
@@ -28,7 +28,7 @@ namespace generator
         size_t frame_header_size;
 
     private:
-        generator::FileInput *input_file;
+        io::FileInput *input_file;
         void exec_ffmpeg();
         void generate_header();
         void set_byte(uint8_t *frame, size_t n, utils::pixel p, size_t pixel_size);
@@ -43,4 +43,4 @@ namespace generator
 }
 
 // Global generator object
-extern generator::Generator gen;
+extern io::Generator gen;

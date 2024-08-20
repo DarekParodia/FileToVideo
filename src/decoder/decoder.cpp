@@ -10,7 +10,7 @@ namespace decoder
     }
     void Decoder::decode()
     {
-        this->output_file = new generator::FileOutput(settings::output_file_path);
+        this->output_file = new io::FileOutput(settings::output_file_path);
 
         AVFormatContext *pFormatCtx = nullptr;
         AVCodecContext *pCodecCtx = nullptr;

@@ -1,6 +1,6 @@
 #include "hash.h"
 
-__uint128_t generator::hash(const uint8_t *data, size_t size) // very simple and basic for minor changes due to compression of video etc.
+__uint128_t io::hash(const uint8_t *data, size_t size) // very simple and basic for minor changes due to compression of video etc.
 {
     const __uint128_t prime = (__uint128_t)0x811C9DC5ULL;
     __uint128_t hash = prime;

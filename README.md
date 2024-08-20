@@ -30,7 +30,6 @@ FileToVideo is operated via command-line arguments. Navigate to the project dire
 
 - `-i, --input-file`: Specifies the input file path. (Required)
 - `-o, --output-file`: Defines the output video file path. (Required)
-- `-f, --ffmpeg-path`: Path to the FFmpeg executable. (Required unless FFmpeg is in PATH)
 - `-d, --decode`: Decode mode flag. When set, the tool operates in decode mode.
 - `-w, --width`: Set the width of the generated video.
 - `-h, --height`: Set the height of the generated video.
@@ -38,6 +37,7 @@ FileToVideo is operated via command-line arguments. Navigate to the project dire
 - `-p, --pixel-size`: Size of a pixel in the generated video.
 - `-c, --use-color`: Enables color usage in the video generation process.
 - `-y, --no-confirm`: Skips the confirmation prompt before starting the conversion process.
+- `--ffmpeg-path`: Path to the FFmpeg executable. (Required unless FFmpeg is in PATH)
 
 ## Examples
 

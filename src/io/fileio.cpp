@@ -1,6 +1,6 @@
 #include "fileio.h"
 
-namespace generator
+namespace io
 {
     FileInput::FileInput(std::filesystem::path path)
     {

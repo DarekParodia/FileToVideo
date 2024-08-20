@@ -6,7 +6,7 @@
 #include "utils/logger.h"
 #include "utils/general.h"
 
-namespace generator
+namespace io
 {
     __uint128_t hash(const uint8_t *data, size_t size);
 }
