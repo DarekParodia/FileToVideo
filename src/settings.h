@@ -27,6 +27,7 @@ namespace settings
     extern bool debug;
     extern bool decode;
     extern bool no_confirm;
+    extern bool yt_source;
 
     namespace video
     {

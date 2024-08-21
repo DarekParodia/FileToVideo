@@ -8,6 +8,7 @@ set(CMAKE_BUILD_TYPE DEBUG)
 # set include directories
 set(SrcDIR ${CMAKE_SOURCE_DIR}/src)
 set(IncludeDIR ${CMAKE_SOURCE_DIR}/include)
+set(CMAKE_INSTALL_BINDIR ${CMAKE_INSTALL_PREFIX}/bin)
 
 include_directories(
         ${SrcDIR}
@@ -47,3 +48,5 @@ add_executable(filetovideo ${CMAKE_SOURCE_DIR}/src/main.cpp ${SOURCE_FILES})
 
 target_link_directories(filetovideo PUBLIC ${CMAKE_SOURCE_DIR}/src/)
 target_link_libraries(filetovideo ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${FFMPEG_LIBRARY} ${SWSCALE_LIBRARY})
+
+install(TARGETS filetovideo DESTINATION ${CMAKE_INSTALL_BINDIR})

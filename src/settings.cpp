@@ -15,6 +15,7 @@ namespace settings
     bool debug = false;
     bool decode = false;
     bool no_confirm = false;
+    bool yt_source = false;
 
     namespace video
     {
