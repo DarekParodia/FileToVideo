@@ -14,6 +14,10 @@ set(CMAKE_INSTALL_BINDIR ${CMAKE_INSTALL_PREFIX}/bin)
 enable_testing()
 
 add_test(NAME encode_decode_error COMMAND ${CMAKE_SOURCE_DIR}/tests/encode_decode_error.sh ${CMAKE_BINARY_DIR}/filetovideo  ${CMAKE_SOURCE_DIR}/tests/data/lorem_ipsum_500p.txt)
+add_test(NAME color COMMAND ${CMAKE_SOURCE_DIR}/tests/color.sh ${CMAKE_BINARY_DIR}/filetovideo  ${CMAKE_SOURCE_DIR}/tests/data/lorem_ipsum_500p.txt)
+add_test(NAME custom_dimensions COMMAND ${CMAKE_SOURCE_DIR}/tests/custom_dimensions.sh ${CMAKE_BINARY_DIR}/filetovideo  ${CMAKE_SOURCE_DIR}/tests/data/lorem_ipsum_500p.txt)
+add_test(NAME custom_dimensions_colored COMMAND ${CMAKE_SOURCE_DIR}/tests/custom_dimensions_colored.sh ${CMAKE_BINARY_DIR}/filetovideo  ${CMAKE_SOURCE_DIR}/tests/data/lorem_ipsum_500p.txt)
+
 
 include_directories(
         ${SrcDIR}
