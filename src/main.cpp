@@ -53,6 +53,7 @@ int handle_arguments(int argc, const char *argv[])
 
 int main(int argc, const char *argv[])
 {
+    settings::program_name = std::string(argv[0]);
     logger.info("Starting FileToVideo Version " + std::to_string(VERSION_MAJOR) + "." + std::to_string(VERSION_MINOR) + "." + std::to_string(VERSION_PATCH));
     handle_arguments(argc, argv);
 

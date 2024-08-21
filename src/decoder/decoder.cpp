@@ -212,50 +212,46 @@ namespace decoder
 
     void Decoder::calculate_requiraments()
     {
-        AVFormatContext *format_context;
-        AVCodecParameters *codec_parameters;
-        int video_stream_index;
-
         // open file
-        if (avformat_open_input(&format_context, settings::input_file_path.c_str(), NULL, NULL) != 0)
+        if (avformat_open_input(&this->format_context, settings::input_file_path.c_str(), NULL, NULL) != 0)
         {
             logger.error("Failed to open file: " + settings::input_file_path);
             exit(1);
         }
 
         // get stream info
-        if (avformat_find_stream_info(format_context, NULL) < 0)
+        if (avformat_find_stream_info(this->format_context, NULL) < 0)
         {
             logger.error("Failed to find stream info");
             exit(1);
         }
 
         // find video stream
-        video_stream_index = -1;
-        for (int i = 0; i < format_context->nb_streams; i++)
+        this->video_stream_index = -1;
+        for (int i = 0; i < this->format_context->nb_streams; i++)
         {
-            if (format_context->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+            if (this->format_context->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
             {
-                video_stream_index = i;
+                this->video_stream_index = i;
                 break;
             }
         }
 
-        if (video_stream_index == -1)
+        if (this->video_stream_index == -1)
         {
             logger.error("Failed to find video stream");
             exit(1);
         }
 
-        codec_parameters = format_context->streams[video_stream_index]->codecpar;
+        this->codec_parameters = this->format_context->streams[this->video_stream_index]->codecpar;
 
         // set settings
-        settings::video::width = codec_parameters->width;
-        settings::video::height = codec_parameters->height;
-        settings::video::fps = av_q2d(format_context->streams[video_stream_index]->avg_frame_rate);
+        settings::video::width = this->codec_parameters->width;
+        settings::video::height = this->codec_parameters->height;
+        settings::video::fps = av_q2d(this->format_context->streams[this->video_stream_index]->avg_frame_rate);
 
-        frame_size = codec_parameters->width * codec_parameters->height * 3;
-        total_frames = format_context->streams[video_stream_index]->nb_frames;
+        this->frame_size = this->codec_parameters->width * this->codec_parameters->height * 3;
+        this->total_frames = this->format_context->streams[this->video_stream_index]->nb_frames;
 
         // print video info
         logger.info("Video info:");

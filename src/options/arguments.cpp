@@ -465,6 +465,43 @@ namespace arguments
     }
 
     //
+    // ================ help ================
+    //
+
+    help::help()
+    {
+        name = "help";
+        description = "Show help";
+        longcall = "--help";
+        shortcall = "";
+        required = false;
+    }
+
+    help::~help()
+    {
+    }
+
+    void help::execute(std::string arg)
+    {
+        logger.debug("Executing help option with argument: " + arg);
+
+        std::cout << "Usage: " << settings::program_name << " [options]" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Options:" << std::endl;
+
+        for (auto option : defined_options)
+        {
+            std::cout << "  " << option->shortcall << ", " << option->longcall << " - " << option->description << std::endl;
+        }
+
+        exit(0);
+    }
+
+    void help::check()
+    {
+    }
+
+    //
     // ================ Global Argument List ================
     //
 
@@ -479,5 +516,6 @@ namespace arguments
         new fps(),
         new pixel_size(),
         new use_color(),
-        new no_confirm()};
+        new no_confirm(),
+        new help()};
 }

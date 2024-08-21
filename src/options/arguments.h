@@ -115,6 +115,16 @@ namespace arguments
         void execute(std::string arg) override;
         void check() override;
     };
+
+    class help : public option
+    {
+    public:
+        help();
+        ~help() override;
+        void execute(std::string arg) override;
+        void check() override;
+    };
+
     // Global argument list
     extern std::vector<option *> defined_options;
 

@@ -21,6 +21,7 @@ namespace settings
     extern std::string ytdl_additional_args;
     extern std::string input_file_path;
     extern std::string output_file_path;
+    extern std::string program_name;
 
     extern bool verbose;
     extern bool skip_ffmpeg_check;

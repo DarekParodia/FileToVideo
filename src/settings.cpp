@@ -9,6 +9,7 @@ namespace settings
     std::string ytdl_additional_args = "";
     std::string input_file_path = "";
     std::string output_file_path = "";
+    std::string program_name = "filetovideo";
 
     bool verbose = true;
     bool skip_ffmpeg_check = false;
