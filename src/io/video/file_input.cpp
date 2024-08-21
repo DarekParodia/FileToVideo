@@ -109,9 +109,59 @@ namespace io::video
         logger.debug("Closed video file: " + filename);
     }
 
+    void FileInput::update()
+    {
+        // read exactly one frame
+        while (av_read_frame(pFormatCtx, &packet) >= 0)
+        {
+            if (packet.stream_index == videoStreamIndex)
+            {
+                int response = avcodec_send_packet(pCodecCtx, &packet);
+                if (response < 0)
+                {
+                    logger.error("Failed to send packet to codec");
+                    av_packet_unref(&packet);
+                    break;
+                }
+
+                response = avcodec_receive_frame(pCodecCtx, pFrame);
+                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
+                {
+                    continue;
+                }
+                else if (response < 0)
+                {
+                    logger.error("Failed to receive frame from codec");
+                    av_packet_unref(&packet);
+                    break;
+                }
+
+                sws_scale(sws_ctx, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
+
+                this->frame_buffer.push(buffer);
+
+                // Free the packet that was allocated by av_read_frame
+                av_packet_unref(&packet);
+                break;
+            }
+        }
+    }
+
     uint8_t *FileInput::readFrame()
     {
-        uint8_t *frame = nullptr;
+        // get the next frame from queue
+        if (this->frame_buffer.empty())
+        {
+            this->update();
+            if (this->frame_buffer.empty())
+            {
+                return nullptr;
+            }
+        }
+
+        // get the frame
+        uint8_t *frame = this->frame_buffer.front();
+        this->frame_buffer.pop();
         return frame;
     }
 }

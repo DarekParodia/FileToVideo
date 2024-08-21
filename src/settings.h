@@ -29,6 +29,8 @@ namespace settings
     extern bool no_confirm;
     extern bool yt_source;
 
+    extern unsigned int max_buffered_frames;
+
     namespace video
     {
         extern unsigned int width;

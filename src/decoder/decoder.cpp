@@ -23,6 +23,7 @@ namespace decoder
 
         while (frameCount < total_frames && !done)
         {
+            this->input_file->update();
             buffer = this->input_file->readFrame();
             size_t dataSize = 0;
             uint8_t *decodedFrame = nullptr;

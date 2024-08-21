@@ -17,6 +17,8 @@ namespace settings
     bool no_confirm = false;
     bool yt_source = false;
 
+    unsigned int max_buffered_frames = 10;
+
     namespace video
     {
         unsigned int width = 640;

@@ -16,13 +16,14 @@ namespace io::video
         size_t getHeight();
         virtual void open();
         virtual void close();
+        virtual void update(); // updates queue with new frames (one frame per call)
         virtual uint8_t *readFrame(size_t &size);
 
-    private:
+    protected:
         size_t width;
         size_t height;
         size_t frame_size; // size of one frame in bytes. kind of unnecessary because it is always width * height * 3 (rgb) but whatever
         std::queue<uint8_t *> frame_buffer;
-        unsigned int frame_buffer_size;
+        const unsigned int max_frame_buffer_size = settings::max_buffered_frames;
     };
 }

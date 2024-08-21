@@ -25,6 +25,7 @@ namespace io::video
         ~FileInput();
         void open() override;
         void close() override;
+        void update() override;
         uint8_t *readFrame();
 
     private:

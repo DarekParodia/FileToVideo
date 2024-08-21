@@ -7,7 +7,6 @@ namespace io::video
         width = settings::video::width;
         height = settings::video::height;
         frame_size = width * height * 3;
-        frame_buffer_size = 0;
     }
 
     VideoInput::~VideoInput()
@@ -35,8 +34,14 @@ namespace io::video
         // not implemented
     }
 
+    void VideoInput::update()
+    {
+        // not implemented
+    }
+
     uint8_t *VideoInput::readFrame(size_t &size)
     {
         // not implemented
+        return nullptr;
     }
 }
