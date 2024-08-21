@@ -109,7 +109,7 @@ namespace io::video
         logger.debug("Closed video file: " + filename);
     }
 
-    uint8_t *FileInput::readFrame(size_t &size)
+    uint8_t *FileInput::readFrame()
     {
         uint8_t *frame = nullptr;
         return frame;
