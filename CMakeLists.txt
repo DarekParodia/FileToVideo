@@ -10,6 +10,11 @@ set(SrcDIR ${CMAKE_SOURCE_DIR}/src)
 set(IncludeDIR ${CMAKE_SOURCE_DIR}/include)
 set(CMAKE_INSTALL_BINDIR ${CMAKE_INSTALL_PREFIX}/bin)
 
+# enable testing
+enable_testing()
+
+add_test(NAME encode_decode_error COMMAND ${CMAKE_SOURCE_DIR}/tests/encode_decode_error.sh ${CMAKE_BINARY_DIR}/filetovideo  ${CMAKE_SOURCE_DIR}/tests/data/lorem_ipsum_500p.txt)
+
 include_directories(
         ${SrcDIR}
         ${IncludeDIR}
