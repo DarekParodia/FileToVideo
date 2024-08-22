@@ -24,6 +24,16 @@ namespace io::video
         return height;
     }
 
+    size_t VideoInput::getFrameCount()
+    {
+        return frame_buffer.size();
+    }
+
+    bool VideoInput::hasFrame()
+    {
+        return !frame_buffer.empty();
+    }
+
     void VideoInput::open()
     {
         // not implemented

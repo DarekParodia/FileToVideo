@@ -9,6 +9,10 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+
 #include "settings.h"
 #include "utils/logger.h"
 #include "utils/general.h"

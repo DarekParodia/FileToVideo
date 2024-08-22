@@ -14,6 +14,8 @@ namespace io::video
         ~VideoInput();
         size_t getWidth();
         size_t getHeight();
+        size_t getFrameCount();
+        bool hasFrame();
         virtual void open();
         virtual void close();
         virtual void update(); // updates queue with new frames (one frame per call)

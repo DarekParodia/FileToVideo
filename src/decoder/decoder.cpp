@@ -8,6 +8,7 @@ namespace decoder
     Decoder::~Decoder()
     {
     }
+
     void Decoder::decode()
     {
         this->output_file = new io::FileOutput(settings::output_file_path);
@@ -15,15 +16,33 @@ namespace decoder
 
         this->input_file->open();
 
-        // Process frames
         this->output_file->clear();
         bool done = false;
         int frameCount = 0;
         uint8_t *buffer = nullptr;
 
+        std::mutex mtx;
+        std::condition_variable cv;
+
+        // thread for reading frames (this->input_file->update())
+        std::thread read_thread([&]()
+                                {
+        while(!done){
+            std::lock_guard<std::mutex> lock(mtx);
+            input_file->update();
+            cv.notify_all();
+            std::unique_lock<std::mutex> lock2(mtx);
+            cv.wait(lock2, [&]{ return input_file->getFrameCount() < settings::max_buffered_frames; });
+        }; });
+
+        // Process frames
         while (frameCount < total_frames && !done)
         {
-            this->input_file->update();
+            // wait for frame
+            std::unique_lock<std::mutex> lock(mtx);
+            cv.wait(lock, [&]
+                    { return input_file->hasFrame(); });
+
             buffer = this->input_file->readFrame();
             size_t dataSize = 0;
             uint8_t *decodedFrame = nullptr;
@@ -50,6 +69,7 @@ namespace decoder
             }
 
             frameCount++;
+            cv.notify_all();
 
             if (frameCount >= this->total_frames)
             {
