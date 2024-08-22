@@ -24,26 +24,44 @@ namespace decoder
         std::mutex mtx;
         std::condition_variable cv;
 
+        std::mutex mtx2;
+        std::condition_variable cv2;
+
         // thread for reading frames (this->input_file->update())
         std::thread read_thread([&]()
                                 {
-        while(!done){
-            std::lock_guard<std::mutex> lock(mtx);
-            input_file->update();
-            cv.notify_all();
-            std::unique_lock<std::mutex> lock2(mtx);
-            cv.wait(lock2, [&]{ return input_file->getFrameCount() < settings::max_buffered_frames; });
-        }; });
+                                    
+                                    while (done)
+                                    {
+                                        // std::lock_guard<std::mutex> lock(mtx);
+                                        // input_file->update();
+                                        cv.notify_all();
+                                        logger.debug("Buffered frames: " + std::to_string(input_file->getFrameCount()));
+                                        if (frameCount + input_file->getFrameCount() >= total_frames)
+                                        {
+                                            break;
+                                        }
+
+                                        std::unique_lock<std::mutex> lock2(mtx2);
+                                        cv2.wait(lock2, [&]
+                                                 { return input_file->getFrameCount() < 1; });
+                                    } });
 
         // Process frames
+
         while (frameCount < total_frames && !done)
         {
             // wait for frame
-            std::unique_lock<std::mutex> lock(mtx);
-            cv.wait(lock, [&]
-                    { return input_file->hasFrame(); });
+            // if (input_file->getFrameCount() < 1)
+            // {
+            //     std::unique_lock<std::mutex> lock(mtx);
+            //     cv.wait(lock, [&]
+            //             { return input_file->getFrameCount() >= 1; });
+            // }
 
             buffer = this->input_file->readFrame();
+            uint8_t *buffer_start = buffer;
+
             size_t dataSize = 0;
             uint8_t *decodedFrame = nullptr;
             if (frameCount < HEADER_FRAMES)
@@ -54,6 +72,8 @@ namespace decoder
             {
                 decodedFrame = this->decode_frame(buffer, &dataSize, false);
             }
+
+            free(buffer_start);
 
             // Write frame to output file if it is not header
             if (decodedFrame != nullptr && frameCount >= HEADER_FRAMES)
@@ -69,13 +89,16 @@ namespace decoder
             }
 
             frameCount++;
-            cv.notify_all();
+            // std::lock_guard<std::mutex> lock2(mtx2);
+            cv2.notify_all();
 
             if (frameCount >= this->total_frames)
             {
                 break;
             }
         }
+
+        read_thread.join();
     }
 
     uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
