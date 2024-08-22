@@ -34,6 +34,11 @@ namespace io::video
         return !frame_buffer.empty();
     }
 
+    bool VideoInput::isOpen()
+    {
+        return is_open;
+    }
+
     void VideoInput::open()
     {
         // not implemented

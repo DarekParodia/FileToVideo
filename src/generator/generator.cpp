@@ -184,6 +184,8 @@ namespace io
         this->header_size = 6 + 36 + 1; // 6 bytes for version, 20 bytes for video settings, 1 byte for booleans
         this->header = static_cast<uint8_t *>(malloc(this->header_size));
 
+        size_t actual_frames = this->total_frames + RELIABILITY_FRAMES;
+
         // write to header buffer
         memcpy(this->header, &ver_major, 2);
         memcpy(this->header + 2, &ver_minor, 2);
@@ -194,7 +196,7 @@ namespace io
         memcpy(this->header + 14, &settings::video::fps, 4);
         memcpy(this->header + 18, &settings::video::pixel_size, 4);
         memcpy(this->header + 22, &settings::video::color_space, 4);
-        memcpy(this->header + 26, &this->total_frames, 8);
+        memcpy(this->header + 26, &actual_frames, 8);
         memcpy(this->header + 34, &this->input_file_size, sizeof(size_t));
 
         uint8_t booleans = 0;

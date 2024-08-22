@@ -12,12 +12,13 @@ namespace decoder
     void Decoder::decode()
     {
         this->output_file = new io::FileOutput(settings::output_file_path);
-        this->input_file->open();
+        if (!this->input_file->isOpen())
+            this->input_file->open();
 
         // Process frames
         this->output_file->clear();
         bool done = false;
-        int frameCount = 0;
+        int frameCount = 1; // index 1 because first frame was read in calculate_requiraments
         uint8_t *buffer = nullptr;
 
         std::thread update_thread([&]()
@@ -44,7 +45,7 @@ namespace decoder
             uint8_t *decodedFrame = nullptr;
             if (frameCount < HEADER_FRAMES)
             {
-                decodedFrame = this->decode_frame(buffer, &dataSize, true);
+                decodedFrame = this->decode_frame(buffer, &dataSize, true); // we don't need this anymore because header is being read in calculate_requiraments
             }
             else
             {
@@ -132,6 +133,13 @@ namespace decoder
 
         if (isHeader)
         {
+            settings::video::width = 0;
+            settings::video::height = 0;
+            settings::video::fps = 0;
+            settings::video::pixel_size = 0;
+            settings::video::color_space = 0;
+            this->total_frames = 0;
+
             // 6 bytes for version
             memcpy(&this->version_major, current_byte, sizeof(uint16_t));
             current_byte += sizeof(uint16_t);
@@ -140,13 +148,17 @@ namespace decoder
             memcpy(&this->version_patch, current_byte, sizeof(uint16_t));
             current_byte += sizeof(uint16_t);
 
-            // skip 12 bytes of width, height and fps (we arleadly know that)
-            current_byte += 12;
+            // 12 bytes for video info
+            memcpy(&settings::video::width, current_byte, sizeof(unsigned int));
+            current_byte += sizeof(unsigned int);
+
+            memcpy(&settings::video::height, current_byte, sizeof(unsigned int));
+            current_byte += sizeof(unsigned int);
+
+            memcpy(&settings::video::fps, current_byte, sizeof(unsigned int));
+            current_byte += sizeof(unsigned int);
 
             // 16 bytes for pixel size, color space and total frames
-            settings::video::pixel_size = 0;
-            settings::video::color_space = 0;
-            this->total_frames = 0;
 
             memcpy(&settings::video::pixel_size, current_byte, sizeof(unsigned int));
             current_byte += sizeof(unsigned int);
@@ -166,6 +178,9 @@ namespace decoder
             settings::video::use_color = *current_byte & 1;
 
             logger.info("Version: " + std::to_string(this->version_major) + "." + std::to_string(this->version_minor) + "." + std::to_string(this->version_patch));
+            logger.info("Width: " + std::to_string(settings::video::width));
+            logger.info("Height: " + std::to_string(settings::video::height));
+            logger.info("FPS: " + std::to_string(settings::video::fps));
             logger.info("Pixel size: " + std::to_string(settings::video::pixel_size));
             logger.info("Color space: " + std::to_string(settings::video::color_space));
             logger.info("Total frames: " + std::to_string(this->total_frames));
@@ -244,53 +259,25 @@ namespace decoder
 
     void Decoder::calculate_requiraments()
     {
+        if (this->input_file == nullptr)
+        {
+            logger.error("Input file not set");
+            exit(1);
+        }
+
         // open file
-        if (avformat_open_input(&this->format_context, settings::input_file_path.c_str(), NULL, NULL) != 0)
-        {
-            logger.error("Failed to open file: " + settings::input_file_path);
-            exit(1);
-        }
+        if (!this->input_file->isOpen())
+            this->input_file->open();
 
-        // get stream info
-        if (avformat_find_stream_info(this->format_context, NULL) < 0)
-        {
-            logger.error("Failed to find stream info");
-            exit(1);
-        }
-
-        // find video stream
-        this->video_stream_index = -1;
-        for (int i = 0; i < this->format_context->nb_streams; i++)
-        {
-            if (this->format_context->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-            {
-                this->video_stream_index = i;
-                break;
-            }
-        }
-
-        if (this->video_stream_index == -1)
-        {
-            logger.error("Failed to find video stream");
-            exit(1);
-        }
-
-        this->codec_parameters = this->format_context->streams[this->video_stream_index]->codecpar;
-
-        // set settings
-        settings::video::width = this->codec_parameters->width;
-        settings::video::height = this->codec_parameters->height;
-        settings::video::fps = av_q2d(this->format_context->streams[this->video_stream_index]->avg_frame_rate);
-
-        this->frame_size = this->codec_parameters->width * this->codec_parameters->height * 3;
-        this->total_frames = this->format_context->streams[this->video_stream_index]->nb_frames;
-
-        // print video info
+        logger.info("===============");
         logger.info("Video info:");
-        logger.info("Width: " + std::to_string(settings::video::width));
-        logger.info("Height: " + std::to_string(settings::video::height));
-        logger.info("FPS: " + std::to_string(settings::video::fps));
-        logger.info("Total frames: " + std::to_string(this->total_frames));
+
+        // read first frame (header) and retrieve video info
+        uint8_t *header = this->input_file->readFrame();
+        this->decode_frame(header, nullptr, true);
+
+        this->frame_size = settings::video::width * settings::video::height * 3;
+        logger.info("===============");
     }
 }
 
