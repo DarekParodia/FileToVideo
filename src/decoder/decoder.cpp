@@ -16,52 +16,16 @@ namespace decoder
 
         this->input_file->open();
 
+        // Process frames
         this->output_file->clear();
         bool done = false;
         int frameCount = 0;
         uint8_t *buffer = nullptr;
 
-        std::mutex mtx;
-        std::condition_variable cv;
-
-        std::mutex mtx2;
-        std::condition_variable cv2;
-
-        // thread for reading frames (this->input_file->update())
-        std::thread read_thread([&]()
-                                {
-                                    
-                                    while (done)
-                                    {
-                                        // std::lock_guard<std::mutex> lock(mtx);
-                                        // input_file->update();
-                                        cv.notify_all();
-                                        logger.debug("Buffered frames: " + std::to_string(input_file->getFrameCount()));
-                                        if (frameCount + input_file->getFrameCount() >= total_frames)
-                                        {
-                                            break;
-                                        }
-
-                                        std::unique_lock<std::mutex> lock2(mtx2);
-                                        cv2.wait(lock2, [&]
-                                                 { return input_file->getFrameCount() < 1; });
-                                    } });
-
-        // Process frames
-
         while (frameCount < total_frames && !done)
         {
-            // wait for frame
-            // if (input_file->getFrameCount() < 1)
-            // {
-            //     std::unique_lock<std::mutex> lock(mtx);
-            //     cv.wait(lock, [&]
-            //             { return input_file->getFrameCount() >= 1; });
-            // }
-
+            this->input_file->update();
             buffer = this->input_file->readFrame();
-            uint8_t *buffer_start = buffer;
-
             size_t dataSize = 0;
             uint8_t *decodedFrame = nullptr;
             if (frameCount < HEADER_FRAMES)
@@ -72,8 +36,6 @@ namespace decoder
             {
                 decodedFrame = this->decode_frame(buffer, &dataSize, false);
             }
-
-            free(buffer_start);
 
             // Write frame to output file if it is not header
             if (decodedFrame != nullptr && frameCount >= HEADER_FRAMES)
@@ -89,18 +51,13 @@ namespace decoder
             }
 
             frameCount++;
-            // std::lock_guard<std::mutex> lock2(mtx2);
-            cv2.notify_all();
 
             if (frameCount >= this->total_frames)
             {
                 break;
             }
         }
-
-        read_thread.join();
     }
-
     uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
     {
         logger.debug("Decoding frame with size: " + std::to_string(this->frame_size) + " bytes");

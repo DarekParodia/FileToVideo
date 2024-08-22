@@ -127,7 +127,7 @@ namespace io::video
                     break;
                 }
 
-                response = avcodec_receive_frame(pCodecCtx, pFrame);
+                response = avcodec_receive_frame(this->pCodecCtx, this->pFrame);
                 if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
                 {
                     continue;
@@ -139,29 +139,11 @@ namespace io::video
                     break;
                 }
 
-                if (!sws_ctx)
-                {
-                    logger.error("SWScale context initialization failed.");
-                    exit(1); // Or handle appropriately
-                }
-
-                if (!pFrame || !pFrameRGB)
-                {
-                    logger.error("Frame allocation failed.");
-                    exit(1); // Or handle appropriately
-                }
-
-                // Example check (adjust according to your logic)
-                if (pFrame->linesize[0] != pCodecCtx->width || pFrameRGB->linesize[0] != pCodecCtx->width)
-                {
-                    logger.error("Frame dimensions mismatch.");
-                    exit(1); // Or handle appropriately
-                }
-
                 sws_scale(sws_ctx, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
 
                 this->frame_buffer.push(buffer);
 
+                // Free the packet that was allocated by av_read_frame
                 av_packet_unref(&packet);
                 break;
             }
