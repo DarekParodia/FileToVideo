@@ -22,9 +22,25 @@ namespace decoder
         int frameCount = 0;
         uint8_t *buffer = nullptr;
 
+        std::thread update_thread([&]()
+                                  {
+            while (!done && (frameCount < total_frames || total_frames == 0))
+            {
+                while (this->input_file->getFrameCount() > settings::max_buffered_frames && !done && (frameCount < total_frames || total_frames == 0))
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+
+                this->input_file->update();
+                logger.debug("Buffered frame count: " + std::to_string(this->input_file->getFrameCount()));
+            } });
+
         while (frameCount < total_frames && !done)
         {
-            this->input_file->update();
+            while (this->input_file->getFrameCount() == 0)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
             buffer = this->input_file->readFrame();
             size_t dataSize = 0;
             uint8_t *decodedFrame = nullptr;
@@ -57,6 +73,7 @@ namespace decoder
                 break;
             }
         }
+        update_thread.join();
     }
     uint8_t *Decoder::decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader)
     {

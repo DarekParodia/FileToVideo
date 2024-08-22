@@ -114,7 +114,10 @@ namespace io::video
 
     void FileInput::update()
     {
-        // read exactly one frame
+        // Clear any previous errors
+        av_packet_unref(&packet);
+
+        // Read exactly one frame
         while (av_read_frame(pFormatCtx, &packet) >= 0)
         {
             if (packet.stream_index == videoStreamIndex)
@@ -123,11 +126,10 @@ namespace io::video
                 if (response < 0)
                 {
                     logger.error("Failed to send packet to codec");
-                    av_packet_unref(&packet);
                     break;
                 }
 
-                response = avcodec_receive_frame(this->pCodecCtx, this->pFrame);
+                response = avcodec_receive_frame(pCodecCtx, pFrame);
                 if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
                 {
                     continue;
@@ -135,13 +137,16 @@ namespace io::video
                 else if (response < 0)
                 {
                     logger.error("Failed to receive frame from codec");
-                    av_packet_unref(&packet);
                     break;
                 }
 
                 sws_scale(sws_ctx, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
 
-                this->frame_buffer.push(buffer);
+                // Ensure buffer is properly managed before pushing
+                if (buffer)
+                {
+                    this->frame_buffer.push(buffer);
+                }
 
                 // Free the packet that was allocated by av_read_frame
                 av_packet_unref(&packet);
