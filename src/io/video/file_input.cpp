@@ -92,6 +92,9 @@ namespace io::video
             exit(1);
         }
 
+        // Allocate video frame
+        this->pFrame = av_frame_alloc();
+
         logger.debug("Opened video file: " + filename);
     }
 
@@ -124,7 +127,7 @@ namespace io::video
                     break;
                 }
 
-                response = avcodec_receive_frame(pCodecCtx, pFrame);
+                response = avcodec_receive_frame(this->pCodecCtx, this->pFrame);
                 if (response == AVERROR(EAGAIN) || response == AVERROR_EOF)
                 {
                     continue;
