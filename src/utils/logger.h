@@ -11,7 +11,8 @@ enum class LogLevel
     INFO,
     WARNING,
     ERROR,
-    DEBUG
+    DEBUG,
+    DEBUG_WARNING
 };
 typedef LogLevel LogLevel;
 
@@ -26,6 +27,7 @@ public:
     void warning(std::string msg) { log(msg, LogLevel::WARNING); }
     void error(std::string msg) { log(msg, LogLevel::ERROR); }
     void debug(std::string msg) { log(msg, LogLevel::DEBUG); }
+    void debug_warning(std::string msg) { log(msg, LogLevel::DEBUG_WARNING); }
 
     // in
     std::string prompt(std::string msg);

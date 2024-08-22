@@ -12,8 +12,6 @@ namespace decoder
     void Decoder::decode()
     {
         this->output_file = new io::FileOutput(settings::output_file_path);
-        this->input_file = new io::video::FileInput(settings::input_file_path);
-
         this->input_file->open();
 
         // Process frames
@@ -26,18 +24,18 @@ namespace decoder
                                   {
             while (!done && (frameCount < total_frames || total_frames == 0))
             {
-                while (this->input_file->getFrameCount() > settings::max_buffered_frames && !done && (frameCount < total_frames || total_frames == 0))
+                while (this->input_file->getBufferLenght() > settings::max_buffered_frames && !done && (frameCount < total_frames || total_frames == 0))
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 }
 
                 this->input_file->update();
-                logger.debug("Buffered frame count: " + std::to_string(this->input_file->getFrameCount()));
+                logger.debug("Buffered frame count: " + std::to_string(this->input_file->getBufferLenght()));
             } });
 
         while (frameCount < total_frames && !done)
         {
-            while (this->input_file->getFrameCount() == 0)
+            while (this->input_file->getBufferLenght() == 0)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
@@ -225,6 +223,11 @@ namespace decoder
         delete[] temp_pixels;
 
         return average;
+    }
+
+    void Decoder::setInputFile(io::video::VideoInput *input_file)
+    {
+        this->input_file = input_file;
     }
 
     void Decoder::calculate_requiraments()

@@ -31,12 +31,13 @@ namespace decoder
         ~Decoder();
         void decode();
         void calculate_requiraments();
+        void setInputFile(io::video::VideoInput *input_file);
 
     private:
         AVFormatContext *format_context;
         AVCodecParameters *codec_parameters;
         int video_stream_index;
-        io::video::FileInput *input_file;
+        io::video::VideoInput *input_file;
         utils::pixel get_pixel(uint8_t *data, size_t n, size_t pixel_size);
         uint8_t *decode_frame(uint8_t *input_frame, size_t *data_size, bool isHeader);
         size_t frame_size;

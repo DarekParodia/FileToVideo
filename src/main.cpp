@@ -75,6 +75,7 @@ int main(int argc, const char *argv[])
     else
     {
         logger.info("Decoding video");
+        dec.setInputFile(new io::video::FileInput(settings::input_file_path)); // set video input to be sourced from a file
         dec.calculate_requiraments();
 
         if (!logger.continue_prompt())

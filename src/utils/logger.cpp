@@ -15,7 +15,7 @@ void Logger::log_time()
 // out
 void Logger::log(std::string msg, LogLevel level)
 {
-    if (!settings::verbose || (level == LogLevel::DEBUG && !settings::debug))
+    if (!settings::verbose || ((level == LogLevel::DEBUG || level == LogLevel::DEBUG_WARNING) && !settings::debug))
     {
         return;
     }
@@ -40,6 +40,10 @@ void Logger::log(std::string msg, LogLevel level)
     case LogLevel::DEBUG:
         // light blue
         std::cout << " [\033[1;36mDEBUG\033[0m]";
+        break;
+    case LogLevel::DEBUG_WARNING:
+        // light magenta
+        std::cout << " [\033[1;35mDEBUG_WARN\033[0m]";
         break;
     default:
         break;

@@ -14,6 +14,12 @@ namespace io::video
 
     void FileInput::open()
     {
+        if (this->is_open)
+        {
+            logger.debug_warning("Video file is already open");
+            return;
+        }
+
         // Open video file
         if (avformat_open_input(&pFormatCtx, filename.c_str(), nullptr, nullptr) != 0)
         {
@@ -95,6 +101,7 @@ namespace io::video
         // Allocate video frame
         this->pFrame = av_frame_alloc();
 
+        this->is_open = true;
         logger.debug("Opened video file: " + filename);
     }
 
@@ -108,6 +115,8 @@ namespace io::video
         avformat_free_context(pFormatCtx);
         av_freep(&buffer);
         sws_freeContext(sws_ctx);
+
+        this->is_open = false;
 
         logger.debug("Closed video file: " + filename);
     }

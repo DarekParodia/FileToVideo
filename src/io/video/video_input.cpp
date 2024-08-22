@@ -24,7 +24,7 @@ namespace io::video
         return height;
     }
 
-    size_t VideoInput::getFrameCount()
+    size_t VideoInput::getBufferLenght()
     {
         return frame_buffer.size();
     }
@@ -49,7 +49,7 @@ namespace io::video
         // not implemented
     }
 
-    uint8_t *VideoInput::readFrame(size_t &size)
+    uint8_t *VideoInput::readFrame()
     {
         // not implemented
         return nullptr;
