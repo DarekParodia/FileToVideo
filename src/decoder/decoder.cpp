@@ -51,6 +51,8 @@ namespace decoder
                 decodedFrame = this->decode_frame(buffer, &dataSize, false);
             }
 
+            free(buffer);
+
             // Write frame to output file if it is not header
             if (decodedFrame != nullptr && frameCount >= HEADER_FRAMES)
             {
@@ -185,10 +187,20 @@ namespace decoder
             logger.debug("Frame index: " + std::to_string(frame_index));
             logger.debug("Hash: " + bytes_to_hex_string((uint8_t *)&hash, 16));
 
+            // compare hashes
             *data_size = bits_in_frame;
 
             *data_size /= 8;
             *data_size -= 24;
+
+            __uint128_t calculated_hash = io::hash(current_byte, *data_size);
+            if (calculated_hash != hash)
+            {
+                logger.warning("Hashes do not match!");
+                logger.warning("Frame index: " + std::to_string(frame_index));
+                logger.warning("Calculated hash: " + bytes_to_hex_string((uint8_t *)&calculated_hash, 16));
+                logger.warning("Expected hash: " + bytes_to_hex_string((uint8_t *)&hash, 16));
+            }
 
             return current_byte;
         }

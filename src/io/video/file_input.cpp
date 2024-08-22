@@ -154,7 +154,9 @@ namespace io::video
                 // Ensure buffer is properly managed before pushing
                 if (buffer)
                 {
-                    this->frame_buffer.push(buffer);
+                    uint8_t *new_buffer = new uint8_t[numBytes];
+                    memcpy(new_buffer, buffer, numBytes);
+                    this->frame_buffer.push(new_buffer);
                 }
 
                 // Free the packet that was allocated by av_read_frame
