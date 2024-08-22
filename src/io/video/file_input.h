@@ -26,7 +26,7 @@ namespace io::video
         void open() override;
         void close() override;
         void update() override;
-        uint8_t *readFrame();
+        uint8_t *readFrame() override;
 
     private:
         std::string filename;

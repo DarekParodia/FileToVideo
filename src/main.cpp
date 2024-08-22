@@ -75,7 +75,20 @@ int main(int argc, const char *argv[])
     else
     {
         logger.info("Decoding video");
-        dec.setInputFile(new io::video::FileInput(settings::input_file_path)); // set video input to be sourced from a file
+
+        io::video::VideoInput *input;
+
+        if (settings::input_file_path.starts_with("http://") || settings::input_file_path.starts_with("https://"))
+        {
+            // input is a youtube video
+            input = new io::video::YoutubeInput(settings::input_file_path);
+        }
+        else
+        {
+            input = new io::video::FileInput(settings::input_file_path);
+        }
+
+        dec.setInputFile(input); // set video input to be sourced from a file
         dec.calculate_requiraments();
 
         if (!logger.continue_prompt())
