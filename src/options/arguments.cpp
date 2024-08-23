@@ -146,59 +146,6 @@ namespace arguments
     }
 
     //
-    // ================ ytdl_path ================
-    //
-
-    ytdl_path::ytdl_path()
-    {
-        name = "ytdl_path";
-        description = "The path to the youtube-dl executable";
-        longcall = "--ytdl-path";
-        required = false;
-    }
-
-    ytdl_path::~ytdl_path()
-    {
-    }
-
-    void ytdl_path::execute(std::string arg)
-    {
-        logger.debug("Executing ytdl_path option with argument: " + arg);
-
-        std::string value = get_arg_value(arg);
-
-        if (value.empty())
-        {
-            logger.error("No value specified for ytdl_path option");
-            exit(1);
-        }
-
-        settings::ytdl_path = value;
-        this->executed = true;
-    }
-
-    void ytdl_path::check()
-    {
-        if (settings::ytdl_path.empty())
-        {
-            logger.warning("No youtube-dl path specified");
-            return;
-        }
-
-        std::string cmd = settings::ytdl_path;
-        cmd += " --version > /dev/null 2>&1";
-        if (system(cmd.c_str()) != 0)
-        {
-            logger.warning("youtube-dl not found");
-            return;
-        }
-        else
-        {
-            logger.info("youtube-dl found");
-        }
-    }
-
-    //
     // ================ debug ================
     //
 

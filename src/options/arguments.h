@@ -35,15 +35,6 @@ namespace arguments
         void check() override;
     };
 
-    class ytdl_path : public option
-    {
-    public:
-        ytdl_path();
-        ~ytdl_path() override;
-        void execute(std::string arg) override;
-        void check() override;
-    };
-
     class debug : public option
     {
     public:

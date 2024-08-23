@@ -5,8 +5,6 @@ namespace settings
 {
     std::string ffmpeg_path = "ffmpeg";
     std::string ffmpeg_additional_args = "";
-    std::string ytdl_path = "youtube-dl";
-    std::string ytdl_additional_args = "";
     std::string input_file_path = "";
     std::string output_file_path = "";
     std::string program_name = "filetovideo";
@@ -16,7 +14,6 @@ namespace settings
     bool debug = false;
     bool decode = false;
     bool no_confirm = false;
-    bool yt_source = false;
 
     unsigned int max_buffered_frames = 10;
 

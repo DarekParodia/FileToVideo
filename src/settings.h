@@ -17,8 +17,6 @@ namespace settings
     // Global settings
     extern std::string ffmpeg_path;
     extern std::string ffmpeg_additional_args;
-    extern std::string ytdl_path;
-    extern std::string ytdl_additional_args;
     extern std::string input_file_path;
     extern std::string output_file_path;
     extern std::string program_name;
@@ -28,7 +26,6 @@ namespace settings
     extern bool debug;
     extern bool decode;
     extern bool no_confirm;
-    extern bool yt_source;
 
     extern unsigned int max_buffered_frames;
 
